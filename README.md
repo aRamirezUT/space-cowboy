@@ -2,11 +2,11 @@
 
 ## py-game/pong.py
 
-A simple two-player Pong game using pygame with template hooks for Bluetooth input.
+A simple two-player Pong game using pygame with alien spaceship players and template hooks for Bluetooth input.
 
 Controls
-- Player 1: W (up) / S (down)
-- Player 2: Up / Down arrows
+- Player 1 spaceship: W (up) / S (down)
+- Player 2 spaceship: Up / Down arrows
 
 Bluetooth
 - The functions `poll_ble_player1()` and `poll_ble_player2()` in `py-game/pong.py` are templates.
