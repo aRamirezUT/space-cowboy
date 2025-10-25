@@ -7,7 +7,7 @@ Controls
 - Player 2 (right paddle): Up/Down arrows
 
 Bluetooth
-- Template methods `poll_ble_player1()` and `poll_ble_player2()` return an int:
+- Template methods `poll_ble()` return a tuple[int, int]:
   -1 = up, 0 = no input, +1 = down. Replace their bodies with your BLE polling
   logic (e.g., using bleak). If a BLE poll returns non-zero, it takes priority
   over keyboard input for that player on that frame.
@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import math
 import random
-import os
 import sys
 
 try:
@@ -32,28 +31,21 @@ except Exception as e:  # pragma: no cover - runtime check for friendly error
 	raise
 
 
-# ------------------------------- Config ------------------------------------
-# Base resolution used to derive fractional sizes
-BASE_WIDTH, BASE_HEIGHT = 960, 540
-
-# Window scale in (0, 1]; multiply base resolution by this to get actual window size
-WINDOW_SCALE = 1.0  # adjust between 0.1 and 1.0 as desired
+from configs.pong import (
+	BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
+	FPS,
+	SHIP_SIZE_FRAC, SHIP_MARGIN_FRAC, SHIP_SPEED_FRAC,
+	ASTEROID_SPEED_FRAC, ASTEROID_SIZE_FRAC, ASTEROID_SPEED_INCREMENT, ASTEROID_MAX_ANGLE_DEG,
+	SCORE_TO_WIN,
+	BG_COLOR, FG_COLOR, ACCENT,
+	DOME_OUTSIDE_OFFSET_FRAC, DOME_VERTICAL_OFFSET_FRAC,
+	SHIP_COLLISION_MODE, SHIP_COLLISION_INFLATE,
+	STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX,
+)
 
 # Logical world size (fixed) and initial display size
 WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT  # world coordinates
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
-FPS = 75
-
-# Size and speed scalers (all 0..1), expressed relative to BASE dimensions
-# Ship is square; size relative to height. Values chosen to match previous pixels at base res.
-SHIP_SIZE_FRAC = 92 / BASE_HEIGHT           # ~0.1704 of height
-SHIP_MARGIN_FRAC = 30 / BASE_WIDTH          # ~0.03125 of width
-SHIP_SPEED_FRAC = 420.0 / BASE_HEIGHT       # ~0.7778 of height per second
-
-ASTEROID_SPEED_FRAC = 360.0 / BASE_HEIGHT   # ~0.6667 of height per second
-ASTEROID_SIZE_FRAC = 50 / BASE_HEIGHT       # ~0.0926 of height
-ASTEROID_SPEED_INCREMENT = 0.0  # per-hit increment (still in pixels/sec; derived later)
-ASTEROID_MAX_ANGLE_DEG = 48
 
 # Derived pixel values from scalers
 SHIP_W = SHIP_H = max(1, int(round(HEIGHT * SHIP_SIZE_FRAC)))
@@ -63,34 +55,11 @@ SHIP_SPEED = HEIGHT * SHIP_SPEED_FRAC  # pixels per second
 ASTEROID_W = ASTEROID_H = max(1, int(round(HEIGHT * ASTEROID_SIZE_FRAC)))
 ASTEROID_SPEED = HEIGHT * ASTEROID_SPEED_FRAC
 
-SCORE_TO_WIN = 7
-
-BG_COLOR = (12, 12, 16)
-FG_COLOR = (235, 235, 245)
-ACCENT = (80, 200, 120)
-
-# Dome positioning (tweakable, 0..1)
-# How far to place the dome outside the top oval horizontally (fraction of the top oval width)
-DOME_OUTSIDE_OFFSET_FRAC = 0.0
-# Vertical adjustment relative to the top oval center (fraction of the top oval height)
-DOME_VERTICAL_OFFSET_FRAC = 0.0
-
-# Asteroid sprite bounding box (ball image size) derived from fraction
-
-# Ship collision box controls
-# - mode "box": use full SHIP_W × SHIP_H
-# - mode "content": use the actual scaled sprite area (ignores letterbox padding)
-SHIP_COLLISION_MODE = "content"  # "box" or "content"
-SHIP_COLLISION_INFLATE = 0        # inflate (+) or deflate (-) the collision rect (applied to width and height)
-
-# Starfield background settings
-STAR_DENSITY = 0.0006  # stars per pixel (world area). 0.0006 -> ~311 stars at 960x540
-STAR_SIZE_MIN, STAR_SIZE_MAX = 1, 2  # pixel size range for stars
-
 
 # ------------------------------- Game --------------------------------------
 from controls import ControlsMixin
 from sprites import Ship, Ball
+from sprites.background import make_starfield_surface
 
 
 class Game(ControlsMixin):
@@ -259,31 +228,15 @@ class Game(ControlsMixin):
 		pygame.display.flip()
 
 	def _prepare_background(self):
-		"""Generate a starfield background once at world size (random stars on black)."""
-		try:
-			# Create a black canvas at world size
-			canvas = pygame.Surface((WIDTH, HEIGHT))
-			canvas.fill((0, 0, 0))  # strict black background
-
-			# Determine star count from density and world area
-			total_pixels = WIDTH * HEIGHT
-			count = max(1, int(total_pixels * STAR_DENSITY))
-
-			for _ in range(count):
-				# Random position
-				x = random.randint(0, WIDTH - 1)
-				y = random.randint(0, HEIGHT - 1)
-				# Random size within configured range
-				size = random.randint(STAR_SIZE_MIN, STAR_SIZE_MAX)
-				# Slight brightness variation (cool white to white)
-				val = random.randint(200, 255)
-				color = (val, val, min(255, val + 10))
-				# Draw small square star
-				pygame.draw.rect(canvas, color, pygame.Rect(x, y, size, size))
-
-			self._bg_prepared = canvas
-		except Exception:
-			self._bg_prepared = None
+		"""Generate and cache the world-sized starfield background via sprites.background."""
+		self._bg_prepared = make_starfield_surface(
+			WIDTH,
+			HEIGHT,
+			density=STAR_DENSITY,
+			size_min=STAR_SIZE_MIN,
+			size_max=STAR_SIZE_MAX,
+			bg_color=(0, 0, 0),
+		)
 
 	def restart(self):
 		# Reset game state for a new match

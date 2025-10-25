@@ -29,5 +29,3 @@ pip install -r py-game/requirements.txt
 ```
 python3 py-game/pong.py
 ```
-
-If you see an error that `pygame` is missing, install it with `pip install pygame` or use the requirements above.
