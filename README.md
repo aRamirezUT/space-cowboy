@@ -42,9 +42,28 @@ Rules
 - Press R to restart, Q or ESC to quit, F11 to toggle fullscreen.
 
 Sprites
-- Both players use `py-game/sprites/images/western-cowboy.png`.
+- Uses specific holstered/drawn sprites:
+	- `py-game/sprites/images/space-cowboy-holstered-east-facing.png`
+	- `py-game/sprites/images/space-cowboy-holstered-west-facing.png`
+	- `py-game/sprites/images/space-cowboy-drawn-east-facing.png`
+	- `py-game/sprites/images/space-cowboy-drawn-west-facing.png`
+	- Background: `py-game/sprites/images/western-background.png` (fallback to starfield if missing)
 
 Run
 ```
 python3 py-game/quickdraw.py
 ```
+
+Config
+- Tweak sizes/colors/placement in `py-game/configs/quickdraw.py`.
+	- Vertical placement: `GROUND_FRAC` (0..1) for ground line, `FOOT_MARGIN_PX` gap from ground to boots.
+	- Sprite size: `SHIP_HEIGHT_FRAC`, `SHIP_ASPECT_SCALE`, margins via `SHIP_MARGIN_FRAC`.
+	- Window: `WINDOW_SCALE` for initial windowed size, `FULLSCREEN_DEFAULT` to start fullscreen or windowed.
+
+# Resources
+## Pixel Art Generation
+1. Background generation
+   - [perchance](https://perchance.org/ai-pixel-art-generator)
+2. Character creation
+   - [pixellab](https://www.pixellab.ai/)
+   - [google gemini](https://gemini.google.com/)
