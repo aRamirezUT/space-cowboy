@@ -13,22 +13,33 @@ class ControlsMixin:
     """Reusable input helpers for Pong.
 
     Provides:
-    - keyboard_dir_for_player1/2: map pressed keys to direction ints (-1, 0, +1)
+    - keyboard_dir_for_player1/2: map pressed keys to direction ints with a default-down behavior
+      (-1 for up while key held; +1 otherwise)
     - poll_ble: stub for BLE input collection for both players
     - input_dirs: merged per-frame directions prioritizing BLE when non-zero
     """
 
     @staticmethod
     def keyboard_dir_for_player1(keys) -> int:
+        """Default to moving down unless the Up key is held.
+
+        Player 1 uses W for up. Down (S) is ignored because down is the default.
+        Returns:
+            -1 when W is held (move up), otherwise +1 (move down by default).
+        """
         up = keys[pygame.K_w]
-        down = keys[pygame.K_s]
-        return (-1 if up and not down else 1 if down and not up else 0)
+        return -1 if up else 1
 
     @staticmethod
     def keyboard_dir_for_player2(keys) -> int:
+        """Default to moving down unless the Up key is held.
+
+        Player 2 uses Up Arrow for up. Down Arrow is ignored because down is the default.
+        Returns:
+            -1 when Up Arrow is held (move up), otherwise +1 (move down by default).
+        """
         up = keys[pygame.K_UP]
-        down = keys[pygame.K_DOWN]
-        return (-1 if up and not down else 1 if down and not up else 0)
+        return -1 if up else 1
 
     @staticmethod
     def poll_ble() -> Tuple[int, int]:
@@ -36,7 +47,7 @@ class ControlsMixin:
         TEMPLATE: Poll BLE input for both players.
         Return a tuple `(p1, p2)` where each value is:
           -1 => move up
-           0 => no input
+           0 => no BLE input (keyboard default-down behavior will apply)
           +1 => move down
 
         Integration hints:

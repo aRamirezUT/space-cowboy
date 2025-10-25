@@ -21,7 +21,7 @@ class Ship:
     _img_right: Optional[object] = field(default=None, init=False, repr=False)
     _img_left: Optional[object] = field(default=None, init=False, repr=False)
     # Collision tuning: "box" uses full w×h; "content" uses the scaled image area only
-    collision_mode: str = "box"  # "box" | "content"
+    collision_mode: str = "content"  # "box" | "content"
     collision_inflate: int = 0    # total pixels to inflate (+) or deflate (-) rect in both width and height
     # Cached content placement within bounding box
     _content_w: int = field(default=0, init=False, repr=False)
@@ -33,7 +33,7 @@ class Ship:
         # Default to bundled sprite if no image provided
         if self.image_path is None:
             module_dir = os.path.dirname(os.path.abspath(__file__))
-            self.image_path = os.path.join(module_dir, "images", "alien-space-cowboy.png")
+            self.image_path = os.path.join(module_dir, "images", "alien-saucer.png")
 
     def rect(self):
         assert pygame is not None
