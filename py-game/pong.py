@@ -23,8 +23,6 @@ from __future__ import annotations
 import math
 import os
 import sys
-from dataclasses import dataclass
-from typing import Tuple
 
 try:
 	import pygame
@@ -37,14 +35,13 @@ except Exception as e:  # pragma: no cover - runtime check for friendly error
 WIDTH, HEIGHT = 960, 540
 FPS = 75
 
-SHIP_W, SHIP_H = 26, 96
+SHIP_W, SHIP_H = 104, 364
 SHIP_MARGIN = 30
 SHIP_SPEED = 420.0  # pixels per second
 
-BALL_SIZE = 14
-BALL_SPEED = 360.0
-BALL_SPEED_INCREMENT = 14.0  # increase after each paddle hit
-BALL_MAX_ANGLE_DEG = 48
+ASTEROID_SPEED = 360.0
+ASTEROID_SPEED_INCREMENT = 14.0  # increase after each paddle hit
+ASTEROID_MAX_ANGLE_DEG = 48
 
 SCORE_TO_WIN = 7
 
@@ -58,159 +55,45 @@ DOME_OUTSIDE_OFFSET_FRAC = 0.0
 # Vertical adjustment relative to the top oval center (fraction of the top oval height, positive = down, negative = up)
 DOME_VERTICAL_OFFSET_FRAC = 0.0
 
+# Asteroid sprite bounding box (ball image size)
+ASTEROID_W, ASTEROID_H = 50, 50
 
-# ------------------------------- Input -------------------------------------
-def poll_ble() -> Tuple[int, int]:
-	"""
-	TEMPLATE: Poll BLE input for both players.
-	Return a tuple `(p1, p2)` where each value is:
-	  -1 => move up
-	   0 => no input
-	  +1 => move down
+# Ship collision box controls
+# - mode "box": use full SHIP_W × SHIP_H
+# - mode "content": use the actual scaled sprite area (ignores letterbox padding)
+SHIP_COLLISION_MODE = "content"  # "box" or "content"
+SHIP_COLLISION_INFLATE = 0        # inflate (+) or deflate (-) the collision rect (applied to width and height)
 
-	Integration hints:
-	- Use a non-blocking API or cached latest value to avoid frame stalls.
-	- Translate your sensor/button state into {-1, 0, +1}.
-	- Example with `bleak` (pseudo-code):
-		# cache latest value in a module global via notification callback
-		def notification_handler(sender, data):
-			update_cached_directions_from(data)  # sets globals: p1_dir, p2_dir
-		await client.start_notify(characteristic, notification_handler)
-	"""
-	# TODO: Replace with real BLE polling. Keep non-blocking per-frame.
-	return 0, 0
 
 # ------------------------------- Game --------------------------------------
-@dataclass
-class Ship:
-	x: int
-	y: int
-	w: int = SHIP_W
-	h: int = SHIP_H
-
-	def rect(self) -> pygame.Rect:
-		return pygame.Rect(int(self.x), int(self.y), self.w, self.h)
-
-	def move(self, dy: float):
-		self.y += dy
-		self.y = max(0, min(HEIGHT - self.h, self.y))
-
-	def draw_ship(self, surface: pygame.Surface, facing_right: bool):
-		# Draw a UFO with two ovals stacked horizontally with overlap and a raised dome.
-		x, y, w, h = self.x, self.y, self.w, self.h
-
-		# Sizes
-		base_w = max(6, int(w * 0.72))
-		top_w = max(4, int(w * 0.62))
-		base_h = max(6, int(h * 0.82))
-		top_h = max(4, int(h * 0.52))
-		# Overlap the ovals horizontally by a fraction of the smaller width
-		overlap = int(min(base_w, top_w) * 0.35)
-		gap = -overlap
-
-		# Vertical alignment: center both ovals vertically in ship bounds
-		cy = y + h // 2
-		base_y = cy - base_h // 2
-		top_y = cy - top_h // 2
-
-		# Horizontal stacking: order depends on facing_right
-		pair_w = base_w + gap + top_w
-		start_x = x + (w - pair_w) // 2
-		if facing_right:
-			# Left player: stack to the right (base first, then top overlapping to the right)
-			base_x = start_x
-			top_x = base_x + base_w + gap
-		else:
-			# Right player: stack to the left (top first, then base overlapping to the right)
-			top_x = start_x
-			base_x = top_x + top_w + gap
-
-		base_rect = pygame.Rect(base_x, base_y, base_w, base_h)
-		top_rect = pygame.Rect(top_x, top_y, top_w, top_h)
-		pygame.draw.ellipse(surface, FG_COLOR, base_rect)
-		pygame.draw.ellipse(surface, FG_COLOR, top_rect)
-
-		# Dome positioned horizontally outside the top oval
-		dome_r = max(3, int(min(top_h, top_w, base_h, base_w) * 0.55))
-		outside_offset = int(top_w * DOME_OUTSIDE_OFFSET_FRAC)
-		if facing_right:
-			# Place to the right of the top oval
-			dome_cx = top_rect.right + dome_r + outside_offset
-		else:
-			# Place to the left of the top oval
-			dome_cx = top_rect.left - dome_r - outside_offset
-		# Vertical position relative to top oval center
-		dome_cy = top_rect.centery + int(top_h * DOME_VERTICAL_OFFSET_FRAC)
-		pygame.draw.circle(surface, ACCENT, (dome_cx, dome_cy), dome_r)
-
-		# Subtle highlight
-		hl_r = max(1, dome_r // 2)
-		hl_x = min(WIDTH - 1, dome_cx - dome_r // 3)
-		hl_y = max(0, dome_cy - dome_r // 3)
-		hl_color = (
-			min(255, ACCENT[0] + 20),
-			min(255, ACCENT[1] + 20),
-			min(255, ACCENT[2] + 20),
-		)
-		pygame.draw.circle(surface, hl_color, (hl_x, hl_y), hl_r)
+from controls import ControlsMixin
+from sprites import Ship, Ball
 
 
-@dataclass
-class Ball:
-	x: float
-	y: float
-	size: int = BALL_SIZE
-	vx: float = BALL_SPEED
-	vy: float = 0.0
-
-	def rect(self) -> pygame.Rect:
-		return pygame.Rect(int(self.x), int(self.y), self.size, self.size)
-
-	def reset(self, direction: int = 1):
-		self.x = WIDTH // 2 - self.size // 2
-		self.y = HEIGHT // 2 - self.size // 2
-		self.vx = direction * BALL_SPEED
-		self.vy = 0.0
-
-
-class Game:
+class Game(ControlsMixin):
 	def __init__(self):
 		pygame.init()
 		pygame.display.set_caption("Space Cowboy Pong")
 		self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
 		self.clock = pygame.time.Clock()
 		self.font = pygame.font.SysFont("monospace", 24)
+		self.big_font = pygame.font.SysFont("monospace", 56)
 
-		self.left = Ship(SHIP_MARGIN, HEIGHT // 2 - SHIP_H // 2)
-		self.right = Ship(WIDTH - SHIP_MARGIN - SHIP_W, HEIGHT // 2 - SHIP_H // 2)
-		self.ball = Ball(WIDTH // 2 - BALL_SIZE // 2, HEIGHT // 2 - BALL_SIZE // 2)
+		self.left = Ship(
+			SHIP_MARGIN, HEIGHT // 2 - SHIP_H // 2, SHIP_W, SHIP_H, HEIGHT,
+			collision_mode=SHIP_COLLISION_MODE, collision_inflate=SHIP_COLLISION_INFLATE,
+		)
+		self.right = Ship(
+			WIDTH - SHIP_MARGIN - SHIP_W, HEIGHT // 2 - SHIP_H // 2, SHIP_W, SHIP_H, HEIGHT,
+			collision_mode=SHIP_COLLISION_MODE, collision_inflate=SHIP_COLLISION_INFLATE,
+		)
+		# Ball uses an image; scale controlled by ASTEROID_W/H
+		self.ball = Ball(0, 0, ASTEROID_W, ASTEROID_H, ASTEROID_SPEED, 0.0)
 
 		self.score = [0, 0]
 		self.running = True
-
-	# --------------------------- Input handling ---------------------------
-	@staticmethod
-	def keyboard_dir_for_player1(keys: pygame.key.ScancodeWrapper) -> int:
-		up = keys[pygame.K_w]
-		down = keys[pygame.K_s]
-		return (-1 if up and not down else 1 if down and not up else 0)
-
-	@staticmethod
-	def keyboard_dir_for_player2(keys: pygame.key.ScancodeWrapper) -> int:
-		up = keys[pygame.K_UP]
-		down = keys[pygame.K_DOWN]
-		return (-1 if up and not down else 1 if down and not up else 0)
-
-	def input_dirs(self) -> Tuple[int, int]:
-		keys = pygame.key.get_pressed()
-		kb1 = self.keyboard_dir_for_player1(keys)
-		kb2 = self.keyboard_dir_for_player2(keys)
-		ble1, ble2 = poll_ble()
-
-		# Prioritize BLE when non-zero; otherwise use keyboard
-		d1 = ble1 if ble1 != 0 else kb1
-		d2 = ble2 if ble2 != 0 else kb2
-		return d1, d2
+		self.game_over = False
+		self.winner: int | None = None  # 0 for left, 1 for right
 
 	# --------------------------- Physics & Rules --------------------------
 	def update(self, dt: float):
@@ -226,8 +109,8 @@ class Game:
 		if self.ball.y <= 0:
 			self.ball.y = 0
 			self.ball.vy = abs(self.ball.vy)
-		elif self.ball.y + self.ball.size >= HEIGHT:
-			self.ball.y = HEIGHT - self.ball.size
+		elif self.ball.y + self.ball.h >= HEIGHT:
+			self.ball.y = HEIGHT - self.ball.h
 			self.ball.vy = -abs(self.ball.vy)
 
 		# Ship collisions
@@ -241,21 +124,33 @@ class Game:
 			self._reflect_from_ship(self.right)
 
 		# Scoring
-		if self.ball.x + self.ball.size < 0:  # missed left
+		if self.ball.x + self.ball.w < 0:  # missed left
 			self.score[1] += 1
-			self.ball.reset(direction=-1)
+			if self.score[1] >= SCORE_TO_WIN:
+				self.game_over = True
+				self.winner = 1
+			else:
+				self.ball.reset(WIDTH, HEIGHT, direction=-1)
+				self.ball.vx = -ASTEROID_SPEED
+				self.ball.vy = 0.0
 		elif self.ball.x > WIDTH:  # missed right
 			self.score[0] += 1
-			self.ball.reset(direction=1)
+			if self.score[0] >= SCORE_TO_WIN:
+				self.game_over = True
+				self.winner = 0
+			else:
+				self.ball.reset(WIDTH, HEIGHT, direction=1)
+				self.ball.vx = ASTEROID_SPEED
+				self.ball.vy = 0.0
 
 	def _reflect_from_ship(self, ship: Ship):
 		# Compute hit position relative to ship center to set outgoing angle
 		ship_center = ship.y + ship.h / 2
-		rel = (self.ball.y + self.ball.size / 2) - ship_center
+		rel = (self.ball.y + self.ball.h / 2) - ship_center
 		norm = max(-1.0, min(1.0, (2.0 * rel) / ship.h))
-		angle = math.radians(norm * BALL_MAX_ANGLE_DEG)
+		angle = math.radians(norm * ASTEROID_MAX_ANGLE_DEG)
 
-		speed = math.hypot(self.ball.vx, self.ball.vy) + BALL_SPEED_INCREMENT
+		speed = math.hypot(self.ball.vx, self.ball.vy) + ASTEROID_SPEED_INCREMENT
 		direction = 1 if ship is self.left else -1
 		self.ball.vx = direction * speed * math.cos(angle)
 		self.ball.vy = speed * math.sin(angle)
@@ -264,7 +159,7 @@ class Game:
 		if direction > 0:
 			self.ball.x = self.left.x + self.left.w
 		else:
-			self.ball.x = self.right.x - self.ball.size
+			self.ball.x = self.right.x - self.ball.w
 
 	# --------------------------- Rendering --------------------------------
 	def draw(self):
@@ -278,43 +173,71 @@ class Game:
 			pygame.draw.rect(self.screen, (40, 40, 48), pygame.Rect(x, y, 2, dash_h))
 
 		# Ships and ball
-		self.left.draw_ship(self.screen, facing_right=True)
-		self.right.draw_ship(self.screen, facing_right=False)
-		pygame.draw.rect(self.screen, ACCENT, self.ball.rect(), border_radius=4)
+		self.left.draw(self.screen, facing_right=True, fg_color=FG_COLOR, accent=ACCENT,
+					  dome_outside_offset_frac=DOME_OUTSIDE_OFFSET_FRAC,
+					  dome_vertical_offset_frac=DOME_VERTICAL_OFFSET_FRAC)
+		self.right.draw(self.screen, facing_right=False, fg_color=FG_COLOR, accent=ACCENT,
+					   dome_outside_offset_frac=DOME_OUTSIDE_OFFSET_FRAC,
+					   dome_vertical_offset_frac=DOME_VERTICAL_OFFSET_FRAC)
+		self.ball.draw(self.screen)
 
-		# Score
+		# Scoreboard
 		score_text = f"{self.score[0]}   {self.score[1]}"
 		surf = self.font.render(score_text, True, FG_COLOR)
 		self.screen.blit(surf, (WIDTH // 2 - surf.get_width() // 2, 16))
 
+		# End-of-game banner overlay
+		if self.game_over:
+			overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+			overlay.fill((0, 0, 0, 140))  # semi-transparent dark layer
+			self.screen.blit(overlay, (0, 0))
+
+			winner_text = "Player 1 Wins!" if self.winner == 0 else "Player 2 Wins!"
+			win_surf = self.big_font.render(winner_text, True, FG_COLOR)
+			self.screen.blit(win_surf, (WIDTH // 2 - win_surf.get_width() // 2, HEIGHT // 2 - 60))
+
+			prompt1 = "Press R to restart"
+			prompt2 = "Press Q to quit"
+			p1 = self.font.render(prompt1, True, FG_COLOR)
+			p2 = self.font.render(prompt2, True, FG_COLOR)
+			self.screen.blit(p1, (WIDTH // 2 - p1.get_width() // 2, HEIGHT // 2 + 8))
+			self.screen.blit(p2, (WIDTH // 2 - p2.get_width() // 2, HEIGHT // 2 + 36))
+
 		pygame.display.flip()
 
+	def restart(self):
+		# Reset game state for a new match
+		self.score = [0, 0]
+		self.left.y = HEIGHT // 2 - SHIP_H // 2
+		self.right.y = HEIGHT // 2 - SHIP_H // 2
+		self.ball.reset(WIDTH, HEIGHT, direction=1)
+		self.ball.vx = ASTEROID_SPEED
+		self.ball.vy = 0.0
+		self.game_over = False
+		self.winner = None
 
 	# --------------------------- Main loop --------------------------------
 	def run(self):
-		self.ball.reset(direction=1)
+		self.ball.reset(WIDTH, HEIGHT, direction=1)
+		self.ball.vx = ASTEROID_SPEED
+		self.ball.vy = 0.0
 		while self.running:
 			dt = self.clock.tick(FPS) / 1000.0
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					self.running = False
-				elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_q):
-					self.running = False
+				elif event.type == pygame.KEYDOWN:
+					if event.key in (pygame.K_ESCAPE, pygame.K_q):
+						self.running = False
+					elif event.key == pygame.K_r:
+						self.restart()
 
-			self.update(dt)
+			if not self.game_over:
+				self.update(dt)
 			self.draw()
 
 		pygame.quit()
-
-
-def main():
-	# Allow headless environments to still import the module without crashing
-	if os.environ.get("SDL_VIDEODRIVER") == "dummy" and __name__ == "__main__":
-		print("Running with SDL_VIDEODRIVER=dummy; no window will appear.")
-	Game().run()
-
+		
 
 if __name__ == "__main__":
-	main()
-
-
+	Game().run()
