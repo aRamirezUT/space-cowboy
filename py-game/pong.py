@@ -40,6 +40,7 @@ from configs.pong import (
 	BG_COLOR, FG_COLOR, ACCENT,
 	DOME_OUTSIDE_OFFSET_FRAC, DOME_VERTICAL_OFFSET_FRAC,
 	SHIP_COLLISION_MODE, SHIP_COLLISION_INFLATE,
+	SHIP_FRONT_HITBOX_FRAC,
 	STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX,
 )
 
@@ -119,13 +120,14 @@ class Game(ControlsMixin):
 
 		# Ship collisions
 		ball_rect = self.ball.rect()
-		lrect = self.left.rect()
-		rrect = self.right.rect()
+		lrect = self._ship_front_hitbox(self.left, facing_right=True)
+		rrect = self._ship_front_hitbox(self.right, facing_right=False)
 
+		# Only reflect when approaching the ship's front face and overlapping its front hitbox
 		if ball_rect.colliderect(lrect) and self.ball.vx < 0:
-			self._reflect_from_ship(self.left)
+			self._reflect_from_ship(self.left, facing_right=True, hitbox=lrect)
 		elif ball_rect.colliderect(rrect) and self.ball.vx > 0:
-			self._reflect_from_ship(self.right)
+			self._reflect_from_ship(self.right, facing_right=False, hitbox=rrect)
 
 		# Scoring
 		if self.ball.x + self.ball.w < 0:  # missed left
@@ -147,7 +149,7 @@ class Game(ControlsMixin):
 				self.ball.vx = ASTEROID_SPEED
 				self.ball.vy = 0.0
 
-	def _reflect_from_ship(self, ship: Ship):
+	def _reflect_from_ship(self, ship: Ship, *, facing_right: bool, hitbox):
 		# Compute hit position relative to ship center to set outgoing angle
 		ship_center = ship.y + ship.h / 2
 		rel = (self.ball.y + self.ball.h / 2) - ship_center
@@ -159,11 +161,27 @@ class Game(ControlsMixin):
 		self.ball.vx = direction * speed * math.cos(angle)
 		self.ball.vy = speed * math.sin(angle)
 
-		# Nudge ball outside paddle to avoid sticking
-		if direction > 0:
-			self.ball.x = self.left.x + self.left.w
+		# Nudge ball just outside the ship's front face to avoid repeated/behind collisions
+		if facing_right:
+			# Left ship: front face is the right edge of hitbox
+			self.ball.x = hitbox.right
 		else:
-			self.ball.x = self.right.x - self.ball.w
+			# Right ship: front face is the left edge of hitbox
+			self.ball.x = hitbox.left - self.ball.w
+
+		# Keep ball within vertical bounds after correction (defensive)
+		self.ball.y = max(0, min(HEIGHT - self.ball.h, self.ball.y))
+
+	def _ship_front_hitbox(self, ship: Ship, *, facing_right: bool):
+		# Base rectangle as defined by ship's collision settings
+		base = ship.rect()
+		front_w = max(1, int(round(base.w * SHIP_FRONT_HITBOX_FRAC)))
+		if facing_right:
+			# Rightmost slice
+			return pygame.Rect(base.right - front_w, base.top, front_w, base.h)
+		else:
+			# Leftmost slice
+			return pygame.Rect(base.left, base.top, front_w, base.h)
 
 	# --------------------------- Rendering --------------------------------
 	def draw(self):

@@ -40,6 +40,12 @@ DOME_VERTICAL_OFFSET_FRAC = 0.0
 SHIP_COLLISION_MODE = "content"  # "box" or "content"
 SHIP_COLLISION_INFLATE = 0        # inflate (+) or deflate (-) the collision rect (width and height)
 
+# Only the "front" portion of the ship should be hittable so asteroids behind the ship
+# don't interact with the collision box. Fraction of ship width to use as the front hitbox
+# (0..1). For the left ship (facing right), this is the rightmost fraction; for the right
+# ship (facing left), this is the leftmost fraction.
+SHIP_FRONT_HITBOX_FRAC = 0.55
+
 # Starfield background settings
 STAR_DENSITY = 0.0006             # stars per pixel (world area). 0.0006 -> ~311 stars at 960x540
 STAR_SIZE_MIN, STAR_SIZE_MAX = 1, 2  # pixel size range for stars
