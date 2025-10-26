@@ -200,7 +200,7 @@ class Menu:
 
             # Poll current input as binary booleans (thresholded)
             try:
-                v1, v2 = self.controls.input_binary()
+                v1, v2 = self.controls.get_data()
             except Exception:
                 v1, v2 = 0.0, 0.0
             b1 = 1 if v1 > 0.5 else 0
