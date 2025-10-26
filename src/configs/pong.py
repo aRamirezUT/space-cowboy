@@ -18,7 +18,7 @@ SHIP_SPEED_FRAC = 420.0 / BASE_HEIGHT       # ~0.7778 of height per second
 
 ASTEROID_SPEED_FRAC = 360.0 / BASE_HEIGHT   # ~0.6667 of height per second
 ASTEROID_SIZE_FRAC = 50 / BASE_HEIGHT       # ~0.0926 of height
-ASTEROID_SPEED_INCREMENT = 0.0              # per-hit increment (pixels/sec)
+ASTEROID_SPEED_INCREMENT = 50.0              # per-hit increment (pixels/sec)
 ASTEROID_MAX_ANGLE_DEG = 48
 
 # Match rules

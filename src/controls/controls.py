@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from typing import Tuple
-from exg import BLEServer
-from exg import EXGClient
+from .exg import BLEServer
+from .exg import EXGClient
 import numpy as np
 
 try:
@@ -19,7 +19,6 @@ class Controls:
     Provides:
     - keyboard_dir_for_player1/2: map pressed keys to direction ints with a default-down behavior
         (-1 for up while key held; +1 otherwise)
-    - input_dirs(): merged per-frame directions prioritizing BLE when non-zero
     - input_binary(): merged per-frame binary inputs (0.0/1.0) with BLE priority using a threshold
     - poll_ble(): returns per-player normalized analog values in [0, 1] by averaging two BLE channels
       (override read_ble_channels() to provide real data)
@@ -35,10 +34,10 @@ class Controls:
         self.server = BLEServer()
         self.server.start()
         self.client = EXGClient()
-    
+        
     def __del__(self) -> None:
         self.server.stop()
-        
+        self.server.join()
 
     @staticmethod
     def _clamp01(v: float) -> float:
@@ -80,25 +79,6 @@ class Controls:
         norm1 = self._clamp01((avg1 - self.P1_RELAX) / (self.P1_MAX - self.P1_RELAX))
         norm2 = self._clamp01((avg2 - self.P2_RELAX) / (self.P2_MAX - self.P2_RELAX))
         return norm1, norm2
-        
-
-    def input_dirs(self) -> Tuple[int, int]:
-        assert pygame is not None, "pygame must be available to read input"
-        keys = pygame.key.get_pressed()
-        kb1 = self.keyboard_dir_for_player1(keys)
-        kb2 = self.keyboard_dir_for_player2(keys)
-        ble1, ble2 = self.poll_ble()
-
-        # Only allow BLE to override keyboard for directional games when it
-        # explicitly encodes direction as -1/0/+1 integers. Otherwise, fall
-        # back to keyboard (since normalized BLE [0,1] lacks direction).
-        d1 = kb1
-        d2 = kb2
-        if isinstance(ble1, int) and ble1 != 0:
-            d1 = -1 if ble1 < 0 else 1
-        if isinstance(ble2, int) and ble2 != 0:
-            d2 = -1 if ble2 < 0 else 1
-        return d1, d2
 
     # ---------------------- Binary input helpers ----------------------
     @staticmethod
@@ -124,10 +104,5 @@ class Controls:
         keys = pygame.key.get_pressed()
         kb1 = self.keyboard_binary_for_player1(keys)
         kb2 = self.keyboard_binary_for_player2(keys)
-        b1, b2 = self.poll_ble()
         # Interpret BLE normalized values using a threshold
-        ble1 = 1.0 if float(b1) >= float(self.BLE_BINARY_THRESHOLD) else 0.0
-        ble2 = 1.0 if float(b2) >= float(self.BLE_BINARY_THRESHOLD) else 0.0
-        v1 = ble1 if USE_BLUETOOTH else kb1
-        v2 = ble2 if USE_BLUETOOTH else kb2
-        return v1, v2
+        return kb1, kb2
