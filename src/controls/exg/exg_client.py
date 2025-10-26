@@ -2,10 +2,12 @@ import numpy as np
 from pylsl import StreamInlet, resolve_byprop
 from time import sleep
 from typing import Tuple
-from filtering.ema import EMA
+from .filtering.ema import EMA
 
-from ble_server import TARGET_NAME
+from .ble_server import TARGET_NAME
 
+# TODO: Instantiate a client in main.py
+# TODO: Implement a mock numpy tuple
 class EXGClient:
     """A PyQt widget that visualizes an LSL stream in real time using pyqtgraph."""
 
@@ -31,6 +33,7 @@ class EXGClient:
                        methods=['mean']
                        )
 
+    # INFO: Each channel is a different player.
     def get_data(self) -> Tuple[np.ndarray | None, np.ndarray | None]:
         chunk, _ = self.inlet.pull_chunk(timeout=0.0)
         if not chunk:

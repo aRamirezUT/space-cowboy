@@ -19,7 +19,7 @@ import numpy as np
 from pylsl import local_clock
 from bleak import BleakScanner, BleakClient, BleakError
 
-from exg_server_template import EXGServerTemplate
+from .exg_server_template import EXGServerTemplate
 
 # ====== Nordic UART Service (NUS) UUIDs ======
 # Used after connect to subscribe. We do NOT require this for discovery in name-only mode.

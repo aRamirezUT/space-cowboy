@@ -16,22 +16,18 @@ Controls
 This script must be run from the repository root.
 """
 from __future__ import annotations
+from typing import Callable, List, Tuple
+from src.controls.exg import EXGClient
 
 import os
-import sys
 import pygame
 import importlib
-from typing import Callable, List, Tuple
 
-# Ensure `py-game/` is importable for the game modules and shared utils
 ROOT = os.path.dirname(os.path.abspath(__file__))
-PYGAME_DIR = os.path.join(ROOT, "py-game")
-if PYGAME_DIR not in sys.path:
-    sys.path.insert(0, PYGAME_DIR)
 
 # Try to use shared font loader if available; fallback to system otherwise
 try:
-    fonts_mod = importlib.import_module('fonts.fonts')
+    fonts_mod = importlib.import_module('src.fonts.fonts')
     load_fonts = getattr(fonts_mod, 'load_fonts', None)
 except Exception:
     load_fonts = None  # type: ignore
@@ -53,6 +49,8 @@ class Menu:
         self.font_big = None
         self._setup_fonts()
 
+        self.exg_client = self._make_exg_client()
+
         # Menu entries: label and callable to run
         self.entries: List[Tuple[str, Callable[[], None]]] = [
             ("Quickdraw Duel", self._run_quickdraw),
@@ -66,19 +64,19 @@ class Menu:
     # ------------------------- Game Launchers -------------------------
     def _run_quickdraw(self) -> None:
         # Launch game in hosted mode using the existing window for seamless return
-        mod = importlib.import_module('quickdraw')
+        mod = importlib.import_module('src.quickdraw')
         cls = getattr(mod, 'QuickdrawGame')
-        cls(screen=self.screen, own_display=False).run()
+        cls(screen=self.screen, own_display=False, ble_client=self.exg_client).run()
 
     def _run_twin_suns_duel(self) -> None:
-        mod = importlib.import_module('twin_suns_duel')
+        mod = importlib.import_module('src.twin_suns_duel')
         cls = getattr(mod, 'TwinSunsDuel')
-        cls(screen=self.screen, own_display=False).run()
+        cls(screen=self.screen, own_display=False, ble_client=self.exg_client).run()
 
     def _run_pong(self) -> None:
-        mod = importlib.import_module('pong')
+        mod = importlib.import_module('src.pong')
         cls = getattr(mod, 'Game')
-        cls(screen=self.screen, own_display=False).run()
+        cls(screen=self.screen, own_display=False, ble_client=self.exg_client).run()
 
     def _quit_menu(self) -> None:
         self.running = False
@@ -182,6 +180,16 @@ class Menu:
         scaled = pygame.transform.smoothscale(self.scene, display_size)
         self.screen.blit(scaled, (0, 0))
         pygame.display.flip()
+
+    # ---------------------- EXG client plumbing ----------------------
+    def _make_exg_client(self):
+        """Instantiate a shared EXG client if available; otherwise return None for keyboard-only play."""
+        try:
+            return EXGClient()
+        except RuntimeError as e:
+            # Gracefully fallback to keyboard controls if no stream is available
+            print(f"[Space Cowboy] EXG input disabled: {e}")
+            return None
 
 
 if __name__ == "__main__":
