@@ -7,7 +7,7 @@ import numpy as np
 from pylsl import StreamInfo, StreamOutlet
 from serial.tools import list_ports
 
-from filtering.iir import IIR
+from .filtering.iir import IIR
 
 
 class EXGServerTemplate(threading.Thread, ABC):

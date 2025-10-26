@@ -22,16 +22,13 @@ from __future__ import annotations
 
 import math
 import random
-import sys
+import pygame
 
-try:
-	import pygame
-except Exception as e:  # pragma: no cover - runtime check for friendly error
-	print("pygame is required to run this game.\nInstall with: pip install pygame", file=sys.stderr)
-	raise
+from .controls import ControlsMixin
+from .sprites import Ship, Ball
+from .sprites.background import make_starfield_surface
 
-
-from configs.pong import (
+from .configs.pong import (
 	BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
 	FPS,
 	SHIP_SIZE_FRAC, SHIP_MARGIN_FRAC, SHIP_SPEED_FRAC,
@@ -59,14 +56,8 @@ ASTEROID_SPEED = HEIGHT * ASTEROID_SPEED_FRAC
 
 
 # ------------------------------- Game --------------------------------------
-from controls import ControlsMixin
-from sprites import Ship, Ball
-from sprites.background import make_starfield_surface
-
-
-
 class Game(ControlsMixin):
-	def __init__(self, *, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None):
+	def __init__(self, *, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None, ble_client=None):
 		pygame.init()
 		pygame.display.set_caption("Space Cowboy Pong")
 		self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -77,6 +68,8 @@ class Game(ControlsMixin):
 		else:
 			self.screen = screen  # type: ignore[assignment]
 			self.fullscreen = False
+		# Optional BLE provider for ControlsMixin
+		self.ble_provider = ble_client
 		# Offscreen scene rendered at world resolution; scaled to window each frame
 		self.scene = pygame.Surface((WIDTH, HEIGHT))
 		# Prepared background surface (scaled to world size), or None for solid fill

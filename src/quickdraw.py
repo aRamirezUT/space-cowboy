@@ -25,17 +25,17 @@ from __future__ import annotations
 import math
 import os
 import sys
-from typing import Optional, Tuple
 import random
+import pygame
 
-try:
-    import pygame
-except Exception as e:  # pragma: no cover - runtime check for friendly error
-    print("pygame is required to run this game.\nInstall with: pip install pygame", file=sys.stderr)
-    raise
+from typing import Optional, Tuple
+from .controls import ControlsMixin
+from .fonts.fonts import load_fonts
+from .sprites import Ship
+from .sprites.background import make_starfield_surface
 
 # Use Quickdraw-specific config for sizes, colors, and FPS
-from configs.quickdraw import (
+from .configs.quickdraw import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
     FPS,
     BG_COLOR, FG_COLOR, ACCENT,
@@ -58,14 +58,9 @@ SHIP_W = int(HEIGHT * SHIP_H_FRAC * SHIP_ASPECT_SCALE)
 SHIP_H = int(HEIGHT * SHIP_H_FRAC)
 MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
-from controls import ControlsMixin
-from fonts.fonts import load_fonts
-from sprites import Ship
-from sprites.background import make_starfield_surface
-
 
 class QuickdrawGame(ControlsMixin):
-    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
+    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
         pygame.init()
         # Determine if this game owns the display (standalone) or uses a shared window (hosted)
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -87,6 +82,8 @@ class QuickdrawGame(ControlsMixin):
                 pass
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
+        # Optional BLE provider for ControlsMixin
+        self.ble_provider = ble_client
         # Load game fonts via shared loader
         fonts = load_fonts(small=28, medium=40, big=72, font_path=FONT_PATH)
         self.font = fonts.small

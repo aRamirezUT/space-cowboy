@@ -26,18 +26,16 @@ Run
 
 from __future__ import annotations
 
-import math
 import os
-import sys
+import pygame
+
 from typing import Optional, Tuple
+from .controls import ControlsMixin
+from .fonts.fonts import load_fonts
+from .sprites.background import make_starfield_surface
+from .sprites import Ship
 
-try:
-    import pygame
-except Exception as e:
-    print("pygame is required to run this game.\nInstall with: pip install pygame", file=sys.stderr)
-    raise
-
-from configs.twin_suns_duel import (
+from .configs.twin_suns_duel import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
     FPS,
     BG_COLOR, FG_COLOR, ACCENT, ALERT, WARNING,
@@ -55,14 +53,9 @@ from configs.twin_suns_duel import (
 WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
 
-from controls import ControlsMixin
-from fonts.fonts import load_fonts
-from sprites.background import make_starfield_surface
-from sprites import Ship
-
 
 class TwinSunsDuel(ControlsMixin):
-    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
+    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -76,6 +69,8 @@ class TwinSunsDuel(ControlsMixin):
             self.screen = screen  # type: ignore[assignment]
             # Keep current fullscreen/window state without forcing a change
             self.fullscreen = False
+        # Optional BLE provider for ControlsMixin
+        self.ble_provider = ble_client
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         f = load_fonts(small=24, medium=36, big=56, font_path=FONT_PATH)
