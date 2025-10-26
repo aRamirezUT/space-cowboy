@@ -61,6 +61,7 @@ MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
 class QuickdrawGame(Controls):
     def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
+        super().__init__()
         pygame.init()
         # Determine if this game owns the display (standalone) or uses a shared window (hosted)
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)

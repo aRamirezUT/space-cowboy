@@ -56,6 +56,7 @@ INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW
 
 class TwinSunsDuel(Controls):
     def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
+        super().__init__()
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
