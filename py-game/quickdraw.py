@@ -360,7 +360,7 @@ class QuickdrawGame(ControlsMixin):
                 msg = "Player 1 wins!" if self.winner == 0 else "Player 2 wins!"
             else:
                 msg = "Player 1 drew first!" if self.winner == 0 else "Player 2 drew first!"
-            self._overlay_center_outlined(self.med_font, msg, FG_COLOR, y=HEIGHT//2 - 120, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
+            self._overlay_center_outlined(self.med_font, msg, (240, 210, 80), y=HEIGHT//2 - 120, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
             self._overlay_center_outlined(self.font, "Press R to restart • Q to quit", FG_COLOR, y=HEIGHT//2 - 76, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
 
         # Scale scene to display
