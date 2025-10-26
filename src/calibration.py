@@ -10,6 +10,16 @@ try:
 except ImportError:  # pragma: no cover - direct script execution fallback
     from controls import Controls  # type: ignore
 
+# Load shared font loader and configured font path
+try:
+    from .fonts.fonts import load_fonts
+except Exception:  # pragma: no cover
+    load_fonts = None  # type: ignore
+try:
+    from config import FONT_PATH  # repo-level config
+except Exception:  # pragma: no cover
+    FONT_PATH = None  # type: ignore
+
 
 class Calibration:
     """Simple EMG calibration flow + binary input monitor."""
@@ -41,9 +51,21 @@ class Calibration:
 
         self.scene = pygame.Surface(self.base_size)
         self.clock = pygame.time.Clock()
-        self.big_font = pygame.font.SysFont("monospace", 64)
-        self.med_font = pygame.font.SysFont("monospace", 32)
-        self.small_font = pygame.font.SysFont("monospace", 24)
+        # Prefer shared custom font; fallback to system monospace
+        if load_fonts is not None:
+            try:
+                f = load_fonts(small=24, medium=32, big=64, font_path=FONT_PATH)
+                self.small_font = f.small
+                self.med_font = f.medium
+                self.big_font = f.big
+            except Exception:
+                self.big_font = pygame.font.SysFont("monospace", 64)
+                self.med_font = pygame.font.SysFont("monospace", 32)
+                self.small_font = pygame.font.SysFont("monospace", 24)
+        else:
+            self.big_font = pygame.font.SysFont("monospace", 64)
+            self.med_font = pygame.font.SysFont("monospace", 32)
+            self.small_font = pygame.font.SysFont("monospace", 24)
 
         self.stage = "relax"
         self._start_time = 0
