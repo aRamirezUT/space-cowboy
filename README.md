@@ -38,7 +38,7 @@ Rules
 - Press SPACE/ENTER to arm the duel and start a 3-second countdown.
 - After "DRAW!", the first player to input wins.
 	- Keyboard: Player 1 uses W; Player 2 uses Up Arrow.
-	- BLE: If wired in via `ControlsMixin.poll_ble()`, a non-zero transition after DRAW counts.
+	- BLE: If wired in via `Controls.poll_ble()`, a non-zero transition after DRAW counts.
 - Press R to restart, Q or ESC to quit, F11 to toggle fullscreen.
 
 Sprites

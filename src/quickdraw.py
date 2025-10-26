@@ -29,7 +29,7 @@ import random
 import pygame
 
 from typing import Optional, Tuple
-from .controls import ControlsMixin
+from .controls import Controls
 from .fonts.fonts import load_fonts
 from .sprites import Ship
 from .sprites.background import make_starfield_surface
@@ -59,7 +59,7 @@ SHIP_H = int(HEIGHT * SHIP_H_FRAC)
 MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
 
-class QuickdrawGame(ControlsMixin):
+class QuickdrawGame(Controls):
     def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
         pygame.init()
         # Determine if this game owns the display (standalone) or uses a shared window (hosted)
@@ -82,7 +82,7 @@ class QuickdrawGame(ControlsMixin):
                 pass
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        # Optional BLE provider for ControlsMixin
+        # Optional BLE provider for Controls
         self.ble_provider = ble_client
         # Load game fonts via shared loader
         fonts = load_fonts(small=28, medium=40, big=72, font_path=FONT_PATH)
@@ -121,7 +121,7 @@ class QuickdrawGame(ControlsMixin):
         self.phase_start_ms = None
         self.random_delay_ms = None
 
-        # Input edge detection (merged keyboard/BLE via ControlsMixin.input_binary)
+        # Input edge detection (merged keyboard/BLE via Controls.input_binary)
         self._bin_prev = (0.0, 0.0)
 
         # Winner animation timing

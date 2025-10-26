@@ -18,7 +18,7 @@ Keyboard mapping
 - Player 2: hold Up Arrow to Attack (value 1.0), release for Block (0.0)
 
 BLE mapping
-- If ControlsMixin.poll_ble() returns non-zero for a player, treat it as 1.0; otherwise 0.0.
+- If Controls.poll_ble() returns non-zero for a player, treat it as 1.0; otherwise 0.0.
 
 Run
   python3 py-game/twin_suns_duel.py
@@ -30,7 +30,7 @@ import os
 import pygame
 
 from typing import Optional, Tuple
-from .controls import ControlsMixin
+from .controls import Controls
 from .fonts.fonts import load_fonts
 from .sprites.background import make_starfield_surface
 from .sprites import Ship
@@ -54,7 +54,7 @@ WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
 
 
-class TwinSunsDuel(ControlsMixin):
+class TwinSunsDuel(Controls):
     def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
@@ -69,7 +69,7 @@ class TwinSunsDuel(ControlsMixin):
             self.screen = screen  # type: ignore[assignment]
             # Keep current fullscreen/window state without forcing a change
             self.fullscreen = False
-        # Optional BLE provider for ControlsMixin
+        # Optional BLE provider for Controls
         self.ble_provider = ble_client
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
@@ -160,7 +160,7 @@ class TwinSunsDuel(ControlsMixin):
 
     # --------------------------- Game logic -------------------------------
     def _read_inputs(self) -> Tuple[float, float]:
-        # Use ControlsMixin to merge keyboard/BLE (BLE has priority)
+        # Use Controls to merge keyboard/BLE (BLE has priority)
         try:
             return self.input_binary()
         except Exception:
