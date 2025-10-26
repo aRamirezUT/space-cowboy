@@ -19,10 +19,10 @@ WARNING = (240, 210, 80)
 
 # Mechanics
 ATTACK_THRESHOLD = 0.10  # input > threshold means attack; otherwise block
-SHIELD_MAX_SECONDS = 3.0  # total blocking time available
+SHIELD_MAX_SECONDS = 1.5  # total blocking time available
 # While blocking, shield drains at 1.0 per second (consuming this many seconds).
 # While attacking, shield regenerates slowly (must be less than 1.0 to be slower than drain).
-SHIELD_REGEN_RATE = 0.30
+SHIELD_REGEN_RATE = 0.05
 
 # Health
 HEALTH_MAX = 1.0  # normalized health pool
