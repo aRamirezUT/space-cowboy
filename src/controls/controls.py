@@ -18,8 +18,6 @@ class Controls:
     """
 
     # Default normalization range for BLE channel averages. Override per game if needed.
-    # Threshold to consider BLE analog as a binary press
-    THRESHOLD: float = 0.5
     
     def __init__(self) -> None:
         self.server = BLEServer()
@@ -29,14 +27,12 @@ class Controls:
         self.P1_FLEX = 1.0
         self.P2_RELAX = 0.0
         self.P2_FLEX = 1.0
+        self.last_p1 = 0.0
+        self.last_p2 = 0.0
         
     def __del__(self) -> None:
         self.server.stop()
         self.server.join()
-
-    @staticmethod
-    def _clamp01(v: float) -> float:
-        return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
 
     @staticmethod
     def keyboard_dir_for_player1(keys) -> int:
@@ -68,12 +64,17 @@ class Controls:
             Tuple of two floats representing normalized BLE values for Player 1 and Player 2.
         """
         ch1, ch2 = self.client.get_data()
-        avg1 = float(np.mean(ch1)) if ch1 is not None else 0.0
-        avg2 = float(np.mean(ch2)) if ch2 is not None else 0.0
-        # Normalize to [0, 1]
-        norm1 = self._clamp01((avg1 - self.P1_RELAX) / (self.P1_FLEX - self.P1_RELAX))
-        norm2 = self._clamp01((avg2 - self.P2_RELAX) / (self.P2_FLEX - self.P2_RELAX))
-        return norm1, norm2
+        if ch1 is None or ch2 is None:
+            return self.last_p1, self.last_p2
+        avg1 = float(np.mean(ch1))
+        avg2 = float(np.mean(ch2))
+        p1_threshold = (self.P1_FLEX + self.P1_RELAX) / 2
+        p2_threshold = (self.P2_FLEX + self.P2_RELAX) / 2
+        avg1 = 1.0 if avg1 >= p1_threshold else 0.
+        avg2 = 1.0 if avg2 >= p2_threshold else 0.
+        self.last_p1 = avg1
+        self.last_p2 = avg2
+        return avg1, avg2
 
     # ---------------------- Binary input helpers ----------------------
     @staticmethod
@@ -112,9 +113,4 @@ class Controls:
         Returns floats in {0.0, 1.0} per player.
         BLE analog values are thresholded using BLE_BINARY_THRESHOLD.
         """
-        p1, p2 = self.get_data()
-        if p1 is None or p2 is None:
-            return 0.5, 0.5
-        p1 = 1.0 if p1 >= self.THRESHOLD else 0.0
-        p2 = 1.0 if p2 >= self.THRESHOLD else 0.0
-        return p1, p2
+        return self.get_data()

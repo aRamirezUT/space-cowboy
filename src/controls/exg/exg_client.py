@@ -42,6 +42,7 @@ class EXGClient:
             target_length = int(self.sampling_rate * seconds)
             chunk = chunk[-target_length:] if len(chunk) > target_length else chunk
         chunk = self.ema.process(chunk)['mean'].T
+        # chunk = np.abs(chunk).T  # Take absolute value to handle negative readings
         channel_0 = chunk[0] if len(chunk) > 0 else []
         channel_1 = chunk[1] if len(chunk) > 1 else []
 
