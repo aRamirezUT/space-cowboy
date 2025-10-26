@@ -56,8 +56,8 @@ ASTEROID_SPEED = HEIGHT * ASTEROID_SPEED_FRAC
 
 
 # ------------------------------- Game --------------------------------------
-class Game(Controls):
-    def __init__(self, *, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None, ble_client=None):
+class Game():
+    def __init__(self, *, controls:Controls, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None):
         super().__init__()
         pygame.init()
         pygame.display.set_caption("Space Cowboy Pong")
@@ -69,8 +69,7 @@ class Game(Controls):
         else:
             self.screen = screen  # type: ignore[assignment]
             self.fullscreen = False
-        # Optional BLE provider for Controls
-        self.ble_provider = ble_client
+        self.controls = controls
         # Offscreen scene rendered at world resolution; scaled to window each frame
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         # Prepared background surface (scaled to world size), or None for solid fill
@@ -111,7 +110,7 @@ class Game(Controls):
 
     # --------------------------- Physics & Rules --------------------------
     def update(self, dt: float):
-        d1, d2 = self.input_binary()
+        d1, d2 = self.controls.input_binary()
         
         d1 = 1 if d1 < 0.5 else (-1 if d1 > 0.5 else 0)
         d2 = 1 if d2 < 0.5 else (-1 if d2 > 0.5 else 0)

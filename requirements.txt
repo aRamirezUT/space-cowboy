@@ -4,10 +4,6 @@ numpy==2.2.6
 pandas==2.3.3
 pygame==2.6.1
 pylsl==1.17.6
-pyobjc-core==12.0
-pyobjc-framework-Cocoa==12.0
-pyobjc-framework-CoreBluetooth==12.0
-pyobjc-framework-libdispatch==12.0
 pyserial==3.5
 python-dateutil==2.9.0.post0
 pytz==2025.2

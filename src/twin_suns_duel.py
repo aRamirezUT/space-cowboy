@@ -55,7 +55,7 @@ INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW
 
 
 class TwinSunsDuel(Controls):
-    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
+    def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
         super().__init__()
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
@@ -71,7 +71,7 @@ class TwinSunsDuel(Controls):
             # Keep current fullscreen/window state without forcing a change
             self.fullscreen = False
         # Optional BLE provider for Controls
-        self.ble_provider = ble_client
+        self.controls = controls
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         f = load_fonts(small=24, medium=36, big=56, font_path=FONT_PATH)
@@ -163,7 +163,7 @@ class TwinSunsDuel(Controls):
     def _read_inputs(self) -> Tuple[float, float]:
         # Use Controls to merge keyboard/BLE (BLE has priority)
         try:
-            return self.input_binary()
+            return self.controls.input_binary()
         except Exception:
             # Fallback: no input if something goes wrong
             return 0.0, 0.0
