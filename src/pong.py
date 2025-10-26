@@ -24,7 +24,7 @@ import math
 import random
 import pygame
 
-from .controls import ControlsMixin
+from .controls import Controls
 from .sprites import Ship, Ball
 from .sprites.background import make_starfield_surface
 
@@ -56,7 +56,7 @@ ASTEROID_SPEED = HEIGHT * ASTEROID_SPEED_FRAC
 
 
 # ------------------------------- Game --------------------------------------
-class Game(ControlsMixin):
+class Game(Controls):
 	def __init__(self, *, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None, ble_client=None):
 		pygame.init()
 		pygame.display.set_caption("Space Cowboy Pong")
@@ -68,7 +68,7 @@ class Game(ControlsMixin):
 		else:
 			self.screen = screen  # type: ignore[assignment]
 			self.fullscreen = False
-		# Optional BLE provider for ControlsMixin
+		# Optional BLE provider for Controls
 		self.ble_provider = ble_client
 		# Offscreen scene rendered at world resolution; scaled to window each frame
 		self.scene = pygame.Surface((WIDTH, HEIGHT))

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from typing import Tuple
+from exg import BLEServer
+from exg import EXGClient
+import numpy as np
 
 try:
     import pygame
@@ -10,7 +13,7 @@ except Exception:  # pragma: no cover - helpful runtime message is already in ma
 
 USE_BLUETOOTH = False  # Set to True/False to toggle Bluetooth input globally
 
-class ControlsMixin:
+class Controls:
     """Reusable input helpers for games.
 
     Provides:
@@ -23,58 +26,23 @@ class ControlsMixin:
     """
 
     # Default normalization range for BLE channel averages. Override per game if needed.
-    BLE_MIN: float = 0.0
-    BLE_MAX: float = 2000.0
+    EMG_RELAX: float = 0.0
+    EMG_MAX: float = 2000.0
     # Threshold to consider BLE analog as a binary press
     BLE_BINARY_THRESHOLD: float = 0.5
+    
+    def __init__(self) -> None:
+        self.server = BLEServer()
+        self.server.start()
+        self.client = EXGClient()
+    
+    def __del__(self) -> None:
+        self.server.stop()
+        
 
     @staticmethod
     def _clamp01(v: float) -> float:
         return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
-
-    def read_ble_channels(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
-        """
-        Read two BLE channels per device, if a provider is attached.
-
-        Returns a tuple of two devices, each as (ch1, ch2) floats:
-            ((p1_ch1, p1_ch2), (p2_ch1, p2_ch2))
-        
-        Expects an optional attribute `ble_provider` on `self` implementing one of:
-          - read_channels() -> ((p1_ch1, p1_ch2), (p2_ch1, p2_ch2))
-          - read_ble_channels() -> same as above
-          - get_data() -> (p1_array, p2_array)  # last samples used
-
-        If no provider is present or an error occurs, returns zeros.
-        """
-        prov = getattr(self, "ble_provider", None)
-        if prov is not None:
-            try:
-                if hasattr(prov, "read_channels") and callable(prov.read_channels):
-                    return prov.read_channels()
-                if hasattr(prov, "read_ble_channels") and callable(prov.read_ble_channels):
-                    return prov.read_ble_channels()
-                if hasattr(prov, "get_data") and callable(prov.get_data):
-                    # Support EXGClient interface: returns (p1_array, p2_array)
-                    p1_arr, p2_arr = prov.get_data()
-                    # Use last sample when available; otherwise 0.0
-                    def last_or_zero(arr) -> float:
-                        try:
-                            if arr is None:
-                                return 0.0
-                            # numpy-like arrays
-                            if hasattr(arr, "__len__") and len(arr) > 0:
-                                return float(arr[-1])
-                            return float(arr)
-                        except Exception:
-                            return 0.0
-                    v1 = last_or_zero(p1_arr)
-                    v2 = last_or_zero(p2_arr)
-                    # Duplicate each value into two channels per device so poll_ble's
-                    # averaging path remains valid.
-                    return (v1, v1), (v2, v2)
-            except Exception:
-                pass
-        return (0.0, 0.0), (0.0, 0.0)
 
     @staticmethod
     def keyboard_dir_for_player1(keys) -> int:
@@ -98,30 +66,21 @@ class ControlsMixin:
         up = keys[pygame.K_UP]
         return -1 if up else 1
 
-    def poll_ble(self) -> Tuple[float, float]:
-        """Poll two BLE channels per device, average and normalize to [0, 1].
+    def get_data(self) -> Tuple[float, float]:
+        """Get latest BLE channel averages for both players.
 
-        Returns a tuple `(p1, p2)` of floats in [0.0, 1.0], one per player.
-        Implement `read_ble_channels()` in your game to provide real (ch1, ch2)
-        readings per device. The two channels are averaged and linearly scaled
-        using BLE_MIN..BLE_MAX, then clamped to [0, 1].
-
-        Note: Directional games like Pong expect -1/0/+1 semantics and should
-        override this method (or use a separate directional BLE reader). The
-        default implementation is intended for binary/analog pressure inputs.
+        Override this method to provide real data from BLE channels.
+        Returns:
+            Tuple of two floats representing normalized BLE values for Player 1 and Player 2.
         """
-        (p1c1, p1c2), (p2c1, p2c2) = (0.0, 0.0), (0.0, 0.0)
-        try:
-            (p1c1, p1c2), (p2c1, p2c2) = self.read_ble_channels()
-        except Exception:
-            # Keep defaults if BLE is unavailable or raises
-            pass
-        avg1 = (float(p1c1) + float(p1c2)) / 2.0
-        avg2 = (float(p2c1) + float(p2c2)) / 2.0
-        denom = max(1e-9, float(self.BLE_MAX) - float(self.BLE_MIN))
-        n1 = self._clamp01((avg1 - float(self.BLE_MIN)) / denom)
-        n2 = self._clamp01((avg2 - float(self.BLE_MIN)) / denom)
-        return n1, n2
+        ch1, ch2 = self.client.get_data()
+        avg1 = float(np.mean(ch1)) if ch1 is not None else 0.0
+        avg2 = float(np.mean(ch2)) if ch2 is not None else 0.0
+        # Normalize to [0, 1]
+        norm1 = self._clamp01((avg1 - self.P1_RELAX) / (self.P1_MAX - self.P1_RELAX))
+        norm2 = self._clamp01((avg2 - self.P2_RELAX) / (self.P2_MAX - self.P2_RELAX))
+        return norm1, norm2
+        
 
     def input_dirs(self) -> Tuple[int, int]:
         assert pygame is not None, "pygame must be available to read input"

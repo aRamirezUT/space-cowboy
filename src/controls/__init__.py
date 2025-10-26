@@ -1,9 +1,9 @@
 """Controls package for input handling (keyboard + BLE stubs).
 
 Exports:
-- ControlsMixin: mixin providing input direction helpers for both players and BLE hook.
+- Controls: mixin providing input direction helpers for both players and BLE hook.
 """
 
-from .controls import ControlsMixin
+from .controls import Controls
 
-__all__ = ["ControlsMixin"]
+__all__ = ["Controls"]
