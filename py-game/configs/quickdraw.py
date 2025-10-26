@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 # Base resolution used to derive fractional sizes
 BASE_WIDTH, BASE_HEIGHT = 960, 540
@@ -35,3 +36,15 @@ FOOT_MARGIN_PX = 8
 # Fallback starfield background settings (used if western background image is missing)
 STAR_DENSITY = 0.0006
 STAR_SIZE_MIN, STAR_SIZE_MAX = 1, 2
+
+# Text rendering
+# Outline thickness (in pixels) for overlay texts and player labels
+TEXT_OUTLINE_PX = 2
+# Outline color for text borders
+TEXT_OUTLINE_COLOR = (0, 0, 0)
+
+# Font override: set to a path (absolute or relative to py-game/) to use a specific font file.
+# Example (Hercules): "fonts/HerculesPixelRegular/HerculesPixelFontRegular-ovAX0.otf"
+# Example (OldBlitz): "fonts/oldblitz-font/OldbitzDemo-BLl98.otf"
+# Leave as None to use system default.
+FONT_PATH = "fonts/HerculesPixelRegular/HerculesPixelFontRegular-ovAX0.otf"

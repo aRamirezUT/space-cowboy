@@ -42,6 +42,7 @@ from configs.pong import (
 	SHIP_COLLISION_MODE, SHIP_COLLISION_INFLATE,
 	SHIP_FRONT_HITBOX_FRAC,
 	STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX,
+    FONT_PATH,
 )
 
 # Logical world size (fixed) and initial display size
@@ -75,8 +76,16 @@ class Game(ControlsMixin):
 		# Prepared background surface (scaled to world size), or None for solid fill
 		self._bg_prepared = None
 		self.clock = pygame.time.Clock()
-		self.font = pygame.font.SysFont("monospace", 24)
-		self.big_font = pygame.font.SysFont("monospace", 56)
+		# Load shared game fonts (small used for UI, big for titles)
+		try:
+			from fonts.fonts import load_fonts
+			f = load_fonts(small=24, medium=40, big=56, font_path=FONT_PATH)
+			self.font = f.small
+			self.big_font = f.big
+		except Exception:
+			# Fallback to system fonts if loader not available
+			self.font = pygame.font.SysFont("monospace", 24)
+			self.big_font = pygame.font.SysFont("monospace", 56)
 
 		self._prepare_background()
 

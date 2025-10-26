@@ -59,6 +59,7 @@ Config
 	- Vertical placement: `GROUND_FRAC` (0..1) for ground line, `FOOT_MARGIN_PX` gap from ground to boots.
 	- Sprite size: `SHIP_HEIGHT_FRAC`, `SHIP_ASPECT_SCALE`, margins via `SHIP_MARGIN_FRAC`.
 	- Window: `WINDOW_SCALE` for initial windowed size, `FULLSCREEN_DEFAULT` to start fullscreen or windowed.
+ 	- Text: `TEXT_OUTLINE_PX` (thickness) and `TEXT_OUTLINE_COLOR` (RGB) for outlined text borders.
 
 # Resources
 ## Pixel Art Generation
@@ -67,3 +68,5 @@ Config
 2. Character creation
    - [pixellab](https://www.pixellab.ai/)
    - [google gemini](https://gemini.google.com/)
+## Font
+1. [OldblitzDemo](https://www.fontspace.com/)
