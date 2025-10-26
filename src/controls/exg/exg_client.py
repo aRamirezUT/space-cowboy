@@ -34,10 +34,13 @@ class EXGClient:
                        )
 
     # INFO: Each channel is a different player.
-    def get_data(self) -> Tuple[np.ndarray | None, np.ndarray | None]:
+    def get_data(self, seconds=0.0) -> Tuple[np.ndarray | None, np.ndarray | None]:
         chunk, _ = self.inlet.pull_chunk(timeout=0.0)
         if not chunk:
             return None, None
+        if seconds > 0.0:
+            target_length = int(self.sampling_rate * seconds)
+            chunk = chunk[-target_length:] if len(chunk) > target_length else chunk
         chunk = self.ema.process(chunk)['mean'].T
         channel_0 = chunk[0] if len(chunk) > 0 else []
         channel_1 = chunk[1] if len(chunk) > 1 else []

@@ -4,14 +4,7 @@ from typing import Tuple
 from .exg import BLEServer
 from .exg import EXGClient
 import numpy as np
-
-try:
-    import pygame
-except Exception:  # pragma: no cover - helpful runtime message is already in main
-    # Let the main module surface a clear error; avoid crashing on import in headless contexts
-    pygame = None  # type: ignore
-
-USE_BLUETOOTH = False  # Set to True/False to toggle Bluetooth input globally
+import pygame
 
 class Controls:
     """Reusable input helpers for games.
@@ -76,8 +69,8 @@ class Controls:
         avg1 = float(np.mean(ch1)) if ch1 is not None else 0.0
         avg2 = float(np.mean(ch2)) if ch2 is not None else 0.0
         # Normalize to [0, 1]
-        norm1 = self._clamp01((avg1 - self.P1_RELAX) / (self.P1_MAX - self.P1_RELAX))
-        norm2 = self._clamp01((avg2 - self.P2_RELAX) / (self.P2_MAX - self.P2_RELAX))
+        norm1 = self._clamp01((avg1 - self.P1_RELAX) / (self.P1_FLEX - self.P1_RELAX))
+        norm2 = self._clamp01((avg2 - self.P2_RELAX) / (self.P2_FLEX - self.P2_RELAX))
         return norm1, norm2
 
     # ---------------------- Binary input helpers ----------------------
@@ -94,15 +87,30 @@ class Controls:
         Default attack key: Up Arrow
         """
         return 1.0 if keys[pygame.K_UP] else 0.0
-
+    
+    def calibrate_relax(self) -> None:
+        """Calibrate EMG relax and max levels for both players."""
+        # Grab last 3 seconds of data
+        ch1, ch2 = self.client.get_data(seconds=3.0)
+        if ch1 is not None and len(ch1) > 0:
+            self.P1_RELAX = float(np.mean(ch1))
+        if ch2 is not None and len(ch2) > 0:
+            self.P2_RELAX = float(np.mean(ch2))
+            
+    def calibrate_flex(self) -> None:
+        """Calibrate EMG max levels for both players."""
+        ch1, ch2 = self.client.get_data(seconds=3.0)
+        if ch1 is not None and len(ch1) > 0:
+            self.P1_FLEX = float(np.mean(ch1))
+        if ch2 is not None and len(ch2) > 0:
+            self.P2_FLEX = float(np.mean(ch2))
+    
     def input_binary(self) -> Tuple[float, float]:
         """Merged binary inputs with BLE priority.
         Returns floats in {0.0, 1.0} per player.
         BLE analog values are thresholded using BLE_BINARY_THRESHOLD.
         """
-        assert pygame is not None, "pygame must be available to read input"
         keys = pygame.key.get_pressed()
         kb1 = self.keyboard_binary_for_player1(keys)
         kb2 = self.keyboard_binary_for_player2(keys)
-        # Interpret BLE normalized values using a threshold
         return kb1, kb2
