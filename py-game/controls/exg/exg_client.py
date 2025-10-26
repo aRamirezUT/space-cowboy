@@ -2,6 +2,7 @@ import numpy as np
 from pylsl import StreamInlet, resolve_byprop
 from time import sleep
 from typing import Tuple
+from filtering.ema import EMA
 
 from ble_server import TARGET_NAME
 
@@ -23,10 +24,18 @@ class EXGClient:
         self.sampling_rate = info.nominal_srate() or 250.0
         self.num_channels = info.channel_count()
         self.channel_labels = self._resolve_channel_labels(info)
+        
+        self.ema = EMA(num_channels=self.num_channels, 
+                       fs=self.sampling_rate,
+                       window_intervals_ms=[250], 
+                       methods=['mean']
+                       )
 
     def get_data(self) -> Tuple[np.ndarray | None, np.ndarray | None]:
         chunk, _ = self.inlet.pull_chunk(timeout=0.0)
-        chunk = np.array(chunk).T  # Transpose to shape (num_channels, num_samples)
+        if not chunk:
+            return None, None
+        chunk = self.ema.process(chunk)['mean'].T
         channel_0 = chunk[0] if len(chunk) > 0 else []
         channel_1 = chunk[1] if len(chunk) > 1 else []
 
