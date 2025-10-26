@@ -52,13 +52,13 @@ class Menu:
         
         # Create controller
         self.controls = Controls()
-        
 
         # Menu entries: label and callable to run
         self.entries: List[Tuple[str, Callable[[], None]]] = [
             ("Quickdraw Duel", self._run_quickdraw),
             ("Twin Suns Duel", self._run_twin_suns_duel),
             ("Pong", self._run_pong),
+            ("Calibration", self._run_calibration),
             ("Quit", self._quit_menu),
         ]
         self.index = 0
@@ -81,6 +81,11 @@ class Menu:
         cls = getattr(mod, 'Game')
         cls(controls=self.controls, screen=self.screen, own_display=False).run()
 
+    def _run_calibration(self) -> None:
+        mod = importlib.import_module('src.calibration')
+        cls = getattr(mod, 'Calibration')
+        cls(controls=self.controls, screen=self.screen, own_display=False).run()
+        
     def _quit_menu(self) -> None:
         self.running = False
 
@@ -183,16 +188,6 @@ class Menu:
         scaled = pygame.transform.smoothscale(self.scene, display_size)
         self.screen.blit(scaled, (0, 0))
         pygame.display.flip()
-
-    # ---------------------- EXG client plumbing ----------------------
-    def _make_exg_client(self):
-        """Instantiate a shared EXG client if available; otherwise return None for keyboard-only play."""
-        try:
-            return EXGClient()
-        except RuntimeError as e:
-            # Gracefully fallback to keyboard controls if no stream is available
-            print(f"[Space Cowboy] EXG input disabled: {e}")
-            return None
 
 
 if __name__ == "__main__":
