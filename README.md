@@ -96,5 +96,7 @@ Config: `py-game/configs/twin_suns_duel.py`
 2. Character creation
    - [pixellab](https://www.pixellab.ai/)
    - [google gemini](https://gemini.google.com/)
+3. Background removal (make images transparent)
+	- [photoroom](https://www.photoroom.com/tools/background-remover)
 ## Font
 1. [OldblitzDemo](https://www.fontspace.com/)

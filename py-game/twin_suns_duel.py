@@ -8,9 +8,10 @@ Inputs per player are continuous in [0,1]:
 
 Rules
 - You have only 3 seconds total of shield. While blocking, your shield drains.
-- When shield hits 0, your guard breaks and you cannot block anymore this round.
-- You win by attacking while your opponent is not blocking (either they are attacking or guard-broken).
-- Simultaneous attacks cancel each other (no hit that frame).
+- While shooting, your shield regenerates slowly (slower than it drains).
+- When shield hits 0, your guard breaks (you cannot block), and you can take damage.
+- You only take damage if your shield has run out (<= 0).
+- Simultaneous attacks cancel each other (no hit that frame), but still consume cooldown.
 
 Keyboard mapping
 - Player 1: hold W to Attack (value 1.0), release for Block (0.0)
@@ -40,9 +41,11 @@ from configs.twin_suns_duel import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
     FPS,
     BG_COLOR, FG_COLOR, ACCENT, ALERT, WARNING,
-    ATTACK_THRESHOLD, SHIELD_MAX_SECONDS,
+    ATTACK_THRESHOLD, SHIELD_MAX_SECONDS, SHIELD_REGEN_RATE,
+    ATTACK_COOLDOWN_SECONDS,
+    HEALTH_MAX, HEALTH_DAMAGE_FRACTION,
     SHIP_HEIGHT_FRAC, SHIP_ASPECT_SCALE, SHIP_MARGIN_FRAC, GROUND_FRAC, FOOT_MARGIN_PX,
-    INPUT_BAR_WIDTH_FRAC, INPUT_BAR_HEIGHT, SHIELD_BAR_HEIGHT, GAUGE_MARGIN_PX,
+    INPUT_BAR_WIDTH_FRAC, INPUT_BAR_HEIGHT, SHIELD_BAR_HEIGHT, HEALTH_BAR_HEIGHT, GAUGE_MARGIN_PX,
     TEXT_OUTLINE_PX, TEXT_OUTLINE_COLOR,
     FULLSCREEN_DEFAULT,
     STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX,
@@ -101,6 +104,8 @@ class TwinSunsDuel(ControlsMixin):
         self.winner = None  # 0 for left, 1 for right
         self.guard_broken = [False, False]
         self.shield_remaining = [SHIELD_MAX_SECONDS, SHIELD_MAX_SECONDS]
+        self.health = [HEALTH_MAX, HEALTH_MAX]
+        self.attack_cooldown = [0.0, 0.0]  # seconds remaining until next shot allowed
 
         # Input smoothing (optional)
         self.input_val = [0.0, 0.0]
@@ -147,6 +152,8 @@ class TwinSunsDuel(ControlsMixin):
         self.winner = None
         self.guard_broken = [False, False]
         self.shield_remaining = [SHIELD_MAX_SECONDS, SHIELD_MAX_SECONDS]
+        self.health = [HEALTH_MAX, HEALTH_MAX]
+        self.attack_cooldown = [0.0, 0.0]
         self.input_val = [0.0, 0.0]
 
     # --------------------------- Game logic -------------------------------
@@ -173,30 +180,51 @@ class TwinSunsDuel(ControlsMixin):
             attacking[i] = atk
             blocking[i] = (not atk) and can_block
 
+        # Update cooldown timers
+        for i in (0, 1):
+            if self.attack_cooldown[i] > 0.0:
+                self.attack_cooldown[i] = max(0.0, self.attack_cooldown[i] - dt)
+
         # Update sprite poses
         self.left_attacking = attacking[0]
         self.right_attacking = attacking[1]
         self._set_player_pose(0, attack=self.left_attacking)
         self._set_player_pose(1, attack=self.right_attacking)
 
-        # Drain shields while blocking
+        # Drain shields while blocking; regenerate slowly while attacking
         for i in (0, 1):
             if blocking[i]:
+                # Drain at 1.0 per second
                 self.shield_remaining[i] = max(0.0, self.shield_remaining[i] - dt)
-                if self.shield_remaining[i] <= 0.0:
-                    self.guard_broken[i] = True
+            elif attacking[i]:
+                # Regenerate slowly while shooting, but not faster than it depletes
+                self.shield_remaining[i] = min(SHIELD_MAX_SECONDS, self.shield_remaining[i] + SHIELD_REGEN_RATE * dt)
+            # Update guard-broken state from current shield value
+            self.guard_broken[i] = self.shield_remaining[i] <= 0.0
 
-        # Resolve hits (instantaneous)
-        # A hits if A attacks and B is not blocking.
-        p1_hits = attacking[0] and not blocking[1]
-        p2_hits = attacking[1] and not blocking[0]
+        # Resolve hits with fire-rate limiting: a shot only "fires" when cooldown is ready
+        fired = [False, False]
+        for i in (0, 1):
+            if attacking[i] and self.attack_cooldown[i] <= 0.0:
+                fired[i] = True
+                self.attack_cooldown[i] = ATTACK_COOLDOWN_SECONDS
+
+        # Damage is applied only if the target's shield is fully depleted
+        p1_hits = fired[0] and (self.shield_remaining[1] <= 0.0)
+        p2_hits = fired[1] and (self.shield_remaining[0] <= 0.0)
         # Simultaneous hits cancel
         if p1_hits and p2_hits:
-            pass  # clash: no winner this frame
+            pass  # clash: no damage
         elif p1_hits:
-            self.winner = 0
+            dmg = HEALTH_MAX * HEALTH_DAMAGE_FRACTION
+            self.health[1] = max(0.0, self.health[1] - dmg)
+            if self.health[1] <= 0.0:
+                self.winner = 0
         elif p2_hits:
-            self.winner = 1
+            dmg = HEALTH_MAX * HEALTH_DAMAGE_FRACTION
+            self.health[0] = max(0.0, self.health[0] - dmg)
+            if self.health[0] <= 0.0:
+                self.winner = 1
 
     # --------------------------- Rendering --------------------------------
     def _draw(self):
@@ -222,7 +250,7 @@ class TwinSunsDuel(ControlsMixin):
             self._draw_center_outlined(self.med_font, msg, FG_COLOR, y0)
             self._draw_center_outlined(self.font, "Press R to restart • Q to quit", FG_COLOR, y0 + 36)
 
-        # Gauges
+    # Gauges
         self._draw_gauges()
 
         # Present
@@ -236,20 +264,26 @@ class TwinSunsDuel(ControlsMixin):
         bar_w = int(WIDTH * INPUT_BAR_WIDTH_FRAC)
         in_h = INPUT_BAR_HEIGHT
         sh_h = SHIELD_BAR_HEIGHT
+        hp_h = HEALTH_BAR_HEIGHT
         gap = GAUGE_MARGIN_PX
-        top_y = HEIGHT // 2 - in_h - sh_h - gap // 2
+        total_h = in_h + sh_h + hp_h + 12  # extra spacing between groups
+        top_y = HEIGHT // 2 - total_h // 2
 
         # Player 1 (left)
         x1 = gap
         self._draw_input_bar(x1, top_y, bar_w, in_h, self.input_val[0], ATTACK_THRESHOLD)
         shield_frac1 = max(0.0, min(1.0, self.shield_remaining[0] / SHIELD_MAX_SECONDS))
         self._draw_shield_bar(x1, top_y + in_h + 6, bar_w, sh_h, shield_frac1, broken=self.guard_broken[0])
+        health_frac1 = max(0.0, min(1.0, self.health[0] / HEALTH_MAX))
+        self._draw_health_bar(x1, top_y + in_h + 6 + sh_h + 6, bar_w, hp_h, health_frac1)
 
         # Player 2 (right)
         x2 = WIDTH - gap - bar_w
         self._draw_input_bar(x2, top_y, bar_w, in_h, self.input_val[1], ATTACK_THRESHOLD)
         shield_frac2 = max(0.0, min(1.0, self.shield_remaining[1] / SHIELD_MAX_SECONDS))
         self._draw_shield_bar(x2, top_y + in_h + 6, bar_w, sh_h, shield_frac2, broken=self.guard_broken[1])
+        health_frac2 = max(0.0, min(1.0, self.health[1] / HEALTH_MAX))
+        self._draw_health_bar(x2, top_y + in_h + 6 + sh_h + 6, bar_w, hp_h, health_frac2)
 
         # Labels
         self._draw_text_outlined(self.font, "Player 1", FG_COLOR, x1, top_y - 24)
@@ -272,6 +306,16 @@ class TwinSunsDuel(ControlsMixin):
         # Fill
         fill_w = int(max(0, min(w, round(w * frac))))
         col = FG_COLOR if not broken else (140, 60, 60)
+        pygame.draw.rect(self.scene, col, (x, y, fill_w, h), border_radius=4)
+        # Border
+        pygame.draw.rect(self.scene, (60, 60, 70), (x, y, w, h), width=1, border_radius=4)
+
+    def _draw_health_bar(self, x: int, y: int, w: int, h: int, frac: float):
+        # Background
+        pygame.draw.rect(self.scene, (30, 30, 36), (x, y, w, h), border_radius=4)
+        # Fill (use ACCENT to differentiate from shield/FG)
+        fill_w = int(max(0, min(w, round(w * frac))))
+        col = (120, 220, 100)  # a greenish health color
         pygame.draw.rect(self.scene, col, (x, y, fill_w, h), border_radius=4)
         # Border
         pygame.draw.rect(self.scene, (60, 60, 70), (x, y, w, h), width=1, border_radius=4)
