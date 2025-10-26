@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Twin Suns Duel: A minimalist, high-tension binary duel between two space cowboys.
+Twin Suns Duel: A minimalist, high-tension binary duel between two MYO BEBOPs.
 
 Inputs per player are continuous in [0,1]:
 - input > ATTACK_THRESHOLD => Shoot (Attack)

@@ -1,4 +1,4 @@
-"""Sprite classes and helpers for Space Cowboy Pong.
+"""Sprite classes and helpers for MYO BEBOP Pong.
 
 Exposes core sprites and background helpers so games can import from `sprites`.
 """

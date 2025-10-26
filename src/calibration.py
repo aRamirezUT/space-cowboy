@@ -30,12 +30,12 @@ class Calibration:
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
         self.base_size = (960, 540)
         if self._owns_display:
-            pygame.display.set_caption("Space Cowboy — Calibration")
+            pygame.display.set_caption("MYO BEBOP — Calibration")
             self.screen = pygame.display.set_mode(self.base_size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         else:
             self.screen = screen  # type: ignore[assignment]
             try:
-                pygame.display.set_caption("Space Cowboy — Calibration")
+                pygame.display.set_caption("MYO BEBOP — Calibration")
             except Exception:
                 pass
 
