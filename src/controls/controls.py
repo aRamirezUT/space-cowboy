@@ -64,7 +64,7 @@ class Controls:
         """
         up = keys[pygame.K_UP]
         return -1 if up else 1
-
+    
     def get_data(self) -> Tuple[float, float]:
         """Get latest BLE channel averages for both players.
 

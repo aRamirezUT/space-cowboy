@@ -60,7 +60,7 @@ MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
 
 class QuickdrawGame(Controls):
-    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None, ble_client=None):
+    def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
         super().__init__()
         pygame.init()
         # Determine if this game owns the display (standalone) or uses a shared window (hosted)
@@ -84,7 +84,7 @@ class QuickdrawGame(Controls):
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         # Optional BLE provider for Controls
-        self.ble_provider = ble_client
+        self.controls = controls
         # Load game fonts via shared loader
         fonts = load_fonts(small=28, medium=40, big=72, font_path=FONT_PATH)
         self.font = fonts.small
@@ -240,7 +240,7 @@ class QuickdrawGame(Controls):
         if self.winner is not None:
             return
         try:
-            v1, v2 = self.input_binary()
+            v1, v2 = self.controls.input_binary()
         except Exception:
             v1, v2 = 0.0, 0.0
         p1_prev, p2_prev = self._bin_prev

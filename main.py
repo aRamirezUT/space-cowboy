@@ -17,11 +17,12 @@ This script must be run from the repository root.
 """
 from __future__ import annotations
 from typing import Callable, List, Tuple
-from src.controls.exg import EXGClient
 
 import os
 import pygame
 import importlib
+
+from src.controls.controls import Controls
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -48,8 +49,10 @@ class Menu:
         self.font_small = None
         self.font_big = None
         self._setup_fonts()
-
-        self.exg_client = self._make_exg_client()
+        
+        # Create controller
+        self.controls = Controls()
+        
 
         # Menu entries: label and callable to run
         self.entries: List[Tuple[str, Callable[[], None]]] = [
@@ -66,17 +69,17 @@ class Menu:
         # Launch game in hosted mode using the existing window for seamless return
         mod = importlib.import_module('src.quickdraw')
         cls = getattr(mod, 'QuickdrawGame')
-        cls(screen=self.screen, own_display=False, ble_client=self.exg_client).run()
+        cls(controls=self.controls, screen=self.screen, own_display=False).run()
 
     def _run_twin_suns_duel(self) -> None:
         mod = importlib.import_module('src.twin_suns_duel')
         cls = getattr(mod, 'TwinSunsDuel')
-        cls(screen=self.screen, own_display=False, ble_client=self.exg_client).run()
+        cls(controls=self.controls, screen=self.screen, own_display=False).run()
 
     def _run_pong(self) -> None:
         mod = importlib.import_module('src.pong')
         cls = getattr(mod, 'Game')
-        cls(screen=self.screen, own_display=False, ble_client=self.exg_client).run()
+        cls(controls=self.controls, screen=self.screen, own_display=False).run()
 
     def _quit_menu(self) -> None:
         self.running = False
