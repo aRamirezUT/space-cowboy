@@ -44,7 +44,9 @@ from configs.quickdraw import (
     SHIP_MARGIN_FRAC,
     GROUND_FRAC, FOOT_MARGIN_PX,
     FULLSCREEN_DEFAULT,
+    TEXT_OUTLINE_PX, TEXT_OUTLINE_COLOR,
     STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX,
+    FONT_PATH,
 )
 
 # Logical world size (fixed) and initial display size
@@ -57,6 +59,7 @@ SHIP_H = int(HEIGHT * SHIP_H_FRAC)
 MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
 from controls import ControlsMixin
+from fonts.fonts import load_fonts
 from sprites import Ship
 from sprites.background import make_starfield_surface
 
@@ -73,9 +76,11 @@ class QuickdrawGame(ControlsMixin):
             self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("monospace", 28)
-        self.big_font = pygame.font.SysFont("monospace", 72)
-        self.med_font = pygame.font.SysFont("monospace", 40)
+        # Load game fonts via shared loader
+        fonts = load_fonts(small=28, medium=40, big=72, font_path=FONT_PATH)
+        self.font = fonts.small
+        self.med_font = fonts.medium
+        self.big_font = fonts.big
 
         self._bg_prepared = None
         self._prepare_background()
@@ -122,7 +127,7 @@ class QuickdrawGame(ControlsMixin):
         self.bullet_start = (0.0, 0.0)
         self.bullet_end = (0.0, 0.0)
         self.bullet_start_ms = None
-        self.bullet_duration = 350  # ms flight
+        self.bullet_duration = 250  # ms flight
 
         # Kill effect for loser after bullet impact
         self.kill_target = None
@@ -355,29 +360,29 @@ class QuickdrawGame(ControlsMixin):
 
         # UI overlays
         if self.waiting_for_start:
-            self._overlay_center(self.big_font, "Quickdraw Duel", FG_COLOR, y=HEIGHT//2 - 80)
-            self._overlay_center(self.font, "Press SPACE or ENTER to arm", FG_COLOR, y=HEIGHT//2 + 8)
+            self._overlay_center_outlined(self.big_font, "Quickdraw Duel", FG_COLOR, y=HEIGHT//2 - 80, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
+            self._overlay_center_outlined(self.font, "Press SPACE or ENTER to arm", FG_COLOR, y=HEIGHT//2 + 8, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
         else:
             if self.winner is None:
                 # Show phase text: READY -> Set -> (silent random delay) -> DRAW! with distinct colors and background
                 if self.phase == "ready":
-                    self._overlay_center_banner(self.med_font, "READY", (230, 70, 70), y=HEIGHT//2 - 60)
+                    self._overlay_center_outlined(self.med_font, "READY", (230, 70, 70), y=HEIGHT//2 - 60, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
                 elif self.phase == "set":
-                    self._overlay_center_banner(self.med_font, "Set", (240, 210, 80), y=HEIGHT//2 - 60)
+                    self._overlay_center_outlined(self.med_font, "Set", (240, 210, 80), y=HEIGHT//2 - 60, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
                 elif self.phase == "draw":
                     if self.draw_signal_ms is not None and (now_ms - self.draw_signal_ms) < 900:
-                        self._overlay_center_banner(self.med_font, "DRAW!", ACCENT, y=HEIGHT//2 - 60)
+                        self._overlay_center_outlined(self.med_font, "DRAW!", ACCENT, y=HEIGHT//2 - 60, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
 
         if self.winner is not None:
             if self.foul_by is not None:
                 # Show foul message prominently
                 player = "Player 1" if self.foul_by == 0 else "Player 2"
-                self._overlay_center(self.med_font, f"Too soon, {player} you lose!", (240, 120, 120), y=HEIGHT//2 - 160)
+                self._overlay_center_outlined(self.med_font, f"Too soon, {player} you lose!", (240, 120, 120), y=HEIGHT//2 - 160, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
                 msg = "Player 1 wins!" if self.winner == 0 else "Player 2 wins!"
             else:
                 msg = "Player 1 drew first!" if self.winner == 0 else "Player 2 drew first!"
-            self._overlay_center(self.med_font, msg, FG_COLOR, y=HEIGHT//2 - 120)
-            self._overlay_center(self.font, "Press R to restart • Q to quit", FG_COLOR, y=HEIGHT//2 - 76)
+            self._overlay_center_outlined(self.med_font, msg, FG_COLOR, y=HEIGHT//2 - 120, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
+            self._overlay_center_outlined(self.font, "Press R to restart • Q to quit", FG_COLOR, y=HEIGHT//2 - 76, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
 
         # Scale scene to display
         display_size = self.screen.get_size()
@@ -389,45 +394,118 @@ class QuickdrawGame(ControlsMixin):
         surf = font.render(text, True, color)
         self.scene.blit(surf, (WIDTH // 2 - surf.get_width() // 2, y))
 
-    def _overlay_center_banner(self, font, text: str, text_color, *, y: int, bg_alpha: int = 140, pad_x: int = 12, pad_y: int = 8):
-        # Render centered text with a semi-transparent dark background for readability
-        label = font.render(text, True, text_color)
-        tx = WIDTH // 2 - label.get_width() // 2
+    def _overlay_center_outlined(self, font, text: str, text_color, *, y: int, outline_px: int | None = None, outline_color = None, alpha: int | None = None):
+        # Render centered outlined text by rendering outline and main separately
+        if outline_px is None:
+            outline_px = TEXT_OUTLINE_PX
+        if outline_color is None:
+            outline_color = TEXT_OUTLINE_COLOR
+        label_main = font.render(text, True, text_color)
+        label_outline = font.render(text, True, outline_color)
+        tx = WIDTH // 2 - label_main.get_width() // 2
         ty = y
-        bg_rect = pygame.Rect(tx - pad_x, ty - pad_y, label.get_width() + pad_x * 2, label.get_height() + pad_y * 2)
-        bg = pygame.Surface((bg_rect.w, bg_rect.h), pygame.SRCALPHA)
-        bg.fill((0, 0, 0, bg_alpha))
-        try:
-            pygame.draw.rect(bg, (0, 0, 0, bg_alpha), bg.get_rect(), border_radius=8)
-        except Exception:
-            pass
-        self.scene.blit(bg, (bg_rect.x, bg_rect.y))
-        self.scene.blit(label, (tx, ty))
+        if alpha is not None:
+            try:
+                label_outline.set_alpha(alpha)
+                label_main.set_alpha(alpha)
+            except Exception:
+                pass
+        # Draw outline first
+        offsets = [
+            (-outline_px, 0), (outline_px, 0), (0, -outline_px), (0, outline_px),
+            (-outline_px, -outline_px), (-outline_px, outline_px), (outline_px, -outline_px), (outline_px, outline_px),
+        ]
+        for dx, dy in offsets:
+            self.scene.blit(label_outline, (tx + dx, ty + dy))
+        # Draw main text
+        self.scene.blit(label_main, (tx, ty))
+
+    # (fonts are loaded via fonts.fonts)
 
     def _draw_nameplate(self, ship: Ship, text: str, *, dimmed: bool = False):
-        # Render a small semi-transparent banner below the player's sprite
-        label = self.font.render(text, True, FG_COLOR)
-        pad_x, pad_y = 8, 4
-        tx = int(ship.x + ship.w // 2 - label.get_width() // 2)
+        # Render outlined title below the player's sprite (no background box)
         # Place under the sprite, clamp to bottom margin
-        ty = int(min(HEIGHT - label.get_height() - 4, ship.y + ship.h + 6))
-        bg_rect = pygame.Rect(tx - pad_x, ty - pad_y, label.get_width() + pad_x * 2, label.get_height() + pad_y * 2)
-        # Adjust alphas when dimmed so end-of-round text stands out
-        bg_alpha = 140 if not dimmed else 60
-        text_alpha = 255 if not dimmed else 120
-        bg = pygame.Surface((bg_rect.w, bg_rect.h), pygame.SRCALPHA)
-        bg.fill((0, 0, 0, bg_alpha))
-        # Optional rounded corners if supported by pygame.draw
+        # Compute text width first using font metrics
+        label_tmp = self.font.render(text, True, FG_COLOR)
+        tx = int(ship.x + ship.w // 2 - label_tmp.get_width() // 2)
+        ty = int(min(HEIGHT - label_tmp.get_height() - 4, ship.y + ship.h + 6))
+        alpha = 255 if not dimmed else 140
+        self._draw_text_outlined(self.font, text, FG_COLOR, tx, ty, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR, alpha=alpha)
+
+    def _draw_text_outlined(self, font, text: str, text_color, x: int, y: int, *, outline_px: int | None = None, outline_color = None, alpha: int | None = None):
+        if outline_px is None:
+            outline_px = TEXT_OUTLINE_PX
+        if outline_color is None:
+            outline_color = TEXT_OUTLINE_COLOR
+        label_main = font.render(text, True, text_color)
+        label_outline = font.render(text, True, outline_color)
+        if alpha is not None:
+            try:
+                label_outline.set_alpha(alpha)
+                label_main.set_alpha(alpha)
+            except Exception:
+                pass
+        offsets = [
+            (-outline_px, 0), (outline_px, 0), (0, -outline_px), (0, outline_px),
+            (-outline_px, -outline_px), (-outline_px, outline_px), (outline_px, -outline_px), (outline_px, outline_px),
+        ]
+        for dx, dy in offsets:
+            self.scene.blit(label_outline, (x + dx, y + dy))
+        self.scene.blit(label_main, (x, y))
+
+    def _blit_outlined_text(self, text_surface, pos: tuple[int, int], *, outline_px: int | None = None, outline_color = None, alpha: int | None = None):
+        """Blit text with an outline by drawing the outline in 8 directions, then the text.
+        text_surface should already be rendered.
+        """
+        if outline_px is None:
+            outline_px = TEXT_OUTLINE_PX
+        if outline_color is None:
+            outline_color = TEXT_OUTLINE_COLOR
+        x, y = pos
+        # Create outline surface by re-rendering the same text with outline color
         try:
-            pygame.draw.rect(bg, (0, 0, 0, bg_alpha), bg.get_rect(), border_radius=6)
+            # We need the font and text to re-render; infer from text_surface if possible is hard.
+            # Instead approximate by tinting via per-surface alpha blend: re-render path preferred.
+            # So accept only surfaces; we redraw outline by colorizing a copy.
+            pass
         except Exception:
             pass
-        self.scene.blit(bg, (bg_rect.x, bg_rect.y))
+        # Since we have only the surface, render outline by offset blits of a solid-colored version
+        outline = text_surface.copy()
+        # Fill a solid color while preserving alpha via multiply: easiest is to fill and BLEND_RGBA_MULT then add color
+        oc = outline_color
         try:
-            label.set_alpha(text_alpha)
+            # Set all RGB to outline color, keep alpha from glyph
+            outline.fill((0, 0, 0, 0))
+            mask = text_surface.copy()
+            col_surf = pygame.Surface(mask.get_size(), pygame.SRCALPHA)
+            col_surf.fill((*oc, 255))
+            mask.blit(col_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+            outline = mask
         except Exception:
-            pass
-        self.scene.blit(label, (tx, ty))
+            # Fallback: use original as outline
+            outline = text_surface
+        if alpha is not None:
+            try:
+                outline.set_alpha(alpha)
+            except Exception:
+                pass
+        # Draw outline around
+        offsets = [
+            (-outline_px, 0), (outline_px, 0), (0, -outline_px), (0, outline_px),
+            (-outline_px, -outline_px), (-outline_px, outline_px), (outline_px, -outline_px), (outline_px, outline_px),
+        ]
+        for dx, dy in offsets:
+            self.scene.blit(outline, (x + dx, y + dy))
+        # Draw main text
+        main = text_surface
+        if alpha is not None:
+            try:
+                main = text_surface.copy()
+                main.set_alpha(alpha)
+            except Exception:
+                main = text_surface
+        self.scene.blit(main, (x, y))
 
     def _draw_player(self, ship: Ship, *, facing_right: bool, now_ms: int, is_winner: bool, is_kill_target: bool = False):
         # Kill effect overrides normal drawing for the losing player once triggered
