@@ -61,6 +61,34 @@ Config
 	- Window: `WINDOW_SCALE` for initial windowed size, `FULLSCREEN_DEFAULT` to start fullscreen or windowed.
  	- Text: `TEXT_OUTLINE_PX` (thickness) and `TEXT_OUTLINE_COLOR` (RGB) for outlined text borders.
 
+## py-game/twin_suns_duel.py
+
+High-tension binary duel under twin suns.
+
+Rules
+- Two inputs per player: 1 = Shoot (Attack), 0 = Deflect (Block)
+- Attack if input > ATTACK_THRESHOLD; otherwise block (default).
+- Shield drains only while blocking; you have 3 seconds total. When it hits 0, guard breaks and you can’t block anymore.
+- You win by shooting when your opponent isn’t blocking.
+- Simultaneous attacks cancel each other.
+
+Keyboard
+- Player 1: W to attack
+- Player 2: Up Arrow to attack
+
+Run
+```
+python3 py-game/twin_suns_duel.py
+```
+
+Config: `py-game/configs/twin_suns_duel.py`
+- ATTACK_THRESHOLD: input > threshold => attack
+- SHIELD_MAX_SECONDS: total blocking time
+- Gauge sizes: INPUT_BAR_WIDTH_FRAC, INPUT_BAR_HEIGHT, SHIELD_BAR_HEIGHT
+- Window: WINDOW_SCALE, FULLSCREEN_DEFAULT
+- Colors: BG_COLOR, FG_COLOR, ACCENT, ALERT, WARNING
+- Fonts: FONT_PATH
+
 # Resources
 ## Pixel Art Generation
 1. Background generation

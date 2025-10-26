@@ -42,17 +42,16 @@ class ControlsMixin:
         return -1 if up else 1
 
     @staticmethod
-    def poll_ble() -> Tuple[int, int]:
+    def poll_ble() -> Tuple[Tuple[float,float], Tuple[float,float]]:
         """
         TEMPLATE: Poll BLE input for both players.
-        Return a tuple `(p1, p2)` where each value is:
-          -1 => move up
-           0 => no BLE input (keyboard default-down behavior will apply)
-          +1 => move down
+        Return a tuple of tuples `(p1(ch1,ch2), p2(ch1,ch2))` where each value is:
+           0.0 => no BLE input (keyboard default-down behavior will apply)
+           +0.0 => move down
 
         Integration hints:
         - Use a non-blocking API or cached latest value to avoid frame stalls.
-        - Translate your sensor/button state into {-1, 0, +1}.
+        - Translate your sensor/button state into {0, +0}.
         - Example with `bleak` (pseudo-code):
             # cache latest value in a module global via notification callback
             def notification_handler(sender, data):
