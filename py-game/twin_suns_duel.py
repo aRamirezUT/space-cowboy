@@ -151,21 +151,12 @@ class TwinSunsDuel(ControlsMixin):
 
     # --------------------------- Game logic -------------------------------
     def _read_inputs(self) -> Tuple[float, float]:
-        # Keyboard -> binary analog: held => 1.0, else 0.0
-        keys = pygame.key.get_pressed()
-        kb1 = 1.0 if keys[pygame.K_w] else 0.0
-        kb2 = 1.0 if keys[pygame.K_UP] else 0.0
-        # BLE -> any non-zero => 1.0
+        # Use ControlsMixin to merge keyboard/BLE (BLE has priority)
         try:
-            b1, b2 = self.poll_ble()
+            return self.input_binary()
         except Exception:
-            b1, b2 = 0, 0
-        ble1 = 1.0 if b1 != 0 else 0.0
-        ble2 = 1.0 if b2 != 0 else 0.0
-        # Prefer BLE when present, else keyboard
-        v1 = ble1 if ble1 > 0.0 else kb1
-        v2 = ble2 if ble2 > 0.0 else kb2
-        return v1, v2
+            # Fallback: no input if something goes wrong
+            return 0.0, 0.0
 
     def _update(self, dt: float):
         # Inputs (EMA smoothing for slightly nicer bars)

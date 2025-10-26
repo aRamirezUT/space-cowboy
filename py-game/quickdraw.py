@@ -113,8 +113,8 @@ class QuickdrawGame(ControlsMixin):
         self.phase_start_ms = None
         self.random_delay_ms = None
 
-        # Input edge detection for BLE
-        self._ble_prev = (0, 0)
+        # Input edge detection (merged keyboard/BLE via ControlsMixin.input_binary)
+        self._bin_prev = (0.0, 0.0)
 
         # Winner animation timing
         self.win_anim_start_ms = None
@@ -160,11 +160,8 @@ class QuickdrawGame(ControlsMixin):
                             self.fullscreen = True
                     elif self.waiting_for_start and event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self._arm_countdown()
-                    else:
-                        self._maybe_handle_draw_key(event)
-
-            # Poll BLE each frame for 0->nonzero transitions after DRAW is enabled
-            self._maybe_handle_draw_ble()
+            # Poll merged input each frame for 0->1 edges
+            self._handle_draw_inputs()
 
             self._update_state(now)
             self._draw(now)
@@ -179,7 +176,7 @@ class QuickdrawGame(ControlsMixin):
         self.countdown_start_ms = pygame.time.get_ticks()
         self.draw_signal_ms = None
         self.draw_enabled = False
-        self._ble_prev = (0, 0)
+        self._bin_prev = (0.0, 0.0)
         self.win_anim_start_ms = None
         # Initialize Ready/Set/Draw sequence
         self.phase = "ready"
@@ -205,7 +202,7 @@ class QuickdrawGame(ControlsMixin):
         self.phase = None
         self.phase_start_ms = None
         self.random_delay_ms = None
-        self._ble_prev = (0, 0)
+        self._bin_prev = (0.0, 0.0)
         self.win_anim_start_ms = None
         # Clear bullet/kill state
         self.bullet_active = False
@@ -226,47 +223,29 @@ class QuickdrawGame(ControlsMixin):
         self.right.y = base_y
         self._prepare_background()
 
-    def _maybe_handle_draw_key(self, event):
-        # Handle both early foul (before DRAW) and valid draw (after DRAW)
-        if self.winner is not None:
-            return
-        if event.type != pygame.KEYDOWN:
-            return
-        p: Optional[int] = None
-        if event.key == pygame.K_w:
-            p = 0
-        elif event.key == pygame.K_UP:
-            p = 1
-        if p is None:
-            return
-        if not self.waiting_for_start and not self.draw_enabled:
-            # Foul: drew too soon
-            self._declare_foul(p)
-        elif self.draw_enabled:
-            # Valid draw
-            self._declare_winner(p)
-
-    def _maybe_handle_draw_ble(self):
-        # Check for 0->nonzero edges to detect draw presses for both early foul and valid draw
+    def _handle_draw_inputs(self):
+        """Detect 0->1 edges from merged keyboard/BLE binary input.
+        Before DRAW: edge is a foul; after DRAW: edge is a valid draw.
+        """
         if self.winner is not None:
             return
         try:
-            b1, b2 = self.poll_ble()
+            v1, v2 = self.input_binary()
         except Exception:
-            b1, b2 = 0, 0
-        p1_prev, p2_prev = self._ble_prev
+            v1, v2 = 0.0, 0.0
+        p1_prev, p2_prev = self._bin_prev
         # Edge triggers
-        if b1 != 0 and p1_prev == 0:
+        if v1 > 0.5 and p1_prev <= 0.5:
             if not self.waiting_for_start and not self.draw_enabled:
                 self._declare_foul(0)
             elif self.draw_enabled:
                 self._declare_winner(0)
-        elif b2 != 0 and p2_prev == 0:
+        elif v2 > 0.5 and p2_prev <= 0.5:
             if not self.waiting_for_start and not self.draw_enabled:
                 self._declare_foul(1)
             elif self.draw_enabled:
                 self._declare_winner(1)
-        self._ble_prev = (b1, b2)
+        self._bin_prev = (v1, v2)
 
     def _declare_winner(self, who: int):
         if self.winner is None:
