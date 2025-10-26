@@ -77,7 +77,7 @@ class Game():
         self.clock = pygame.time.Clock()
         # Load shared game fonts (small used for UI, big for titles)
         try:
-            from fonts.fonts import load_fonts
+            from .fonts.fonts import load_fonts
             f = load_fonts(small=24, medium=40, big=56, font_path=FONT_PATH)
             self.font = f.small
             self.big_font = f.big
