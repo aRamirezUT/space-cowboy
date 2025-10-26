@@ -1,7 +1,7 @@
 import numpy as np
 from pylsl import StreamInlet, resolve_byprop
-from typing import Literal
 from time import sleep
+from typing import Tuple
 
 from ble_server import TARGET_NAME
 
@@ -24,7 +24,7 @@ class EXGClient:
         self.num_channels = info.channel_count()
         self.channel_labels = self._resolve_channel_labels(info)
 
-    def get_data(self) -> None:
+    def get_data(self) -> Tuple[np.ndarray | None, np.ndarray | None]:
         chunk, _ = self.inlet.pull_chunk(timeout=0.0)
         chunk = np.array(chunk).T  # Transpose to shape (num_channels, num_samples)
         channel_0 = chunk[0] if len(chunk) > 0 else []
