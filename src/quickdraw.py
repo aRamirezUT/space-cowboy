@@ -122,7 +122,7 @@ class QuickdrawGame(Controls):
         self.phase_start_ms = None
         self.random_delay_ms = None
 
-        # Input edge detection (merged keyboard/BLE via Controls.input_binary)
+        # Input edge detection (merged keyboard/BLE via Controls.get_data())
         self._bin_prev = (0.0, 0.0)
 
         # Winner animation timing
@@ -240,7 +240,7 @@ class QuickdrawGame(Controls):
         if self.winner is not None:
             return
         try:
-            v1, v2 = self.controls.input_binary()
+            v1, v2 = self.controls.get_data(threshold=0.75)
         except Exception:
             v1, v2 = 0.0, 0.0
         p1_prev, p2_prev = self._bin_prev

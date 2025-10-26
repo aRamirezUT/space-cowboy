@@ -12,7 +12,7 @@ class Controls:
     Provides:
     - keyboard_dir_for_player1/2: map pressed keys to direction ints with a default-down behavior
         (-1 for up while key held; +1 otherwise)
-    - input_binary(): merged per-frame binary inputs (0.0/1.0) with BLE priority using a threshold
+    - get_data(): merged per-frame binary inputs (0.0/1.0) with BLE priority using a threshold
     - poll_ble(): returns per-player normalized analog values in [0, 1] by averaging two BLE channels
       (override read_ble_channels() to provide real data)
     """
@@ -56,7 +56,7 @@ class Controls:
         up = keys[pygame.K_UP]
         return -1 if up else 1
     
-    def get_data(self) -> Tuple[float, float]:
+    def get_data(self, threshold=0.5) -> Tuple[float, float]:
         """Get latest BLE channel averages for both players.
 
         Override this method to provide real data from BLE channels.
@@ -68,8 +68,9 @@ class Controls:
             return self.last_p1, self.last_p2
         avg1 = float(np.mean(ch1))
         avg2 = float(np.mean(ch2))
-        p1_threshold = (self.P1_FLEX + self.P1_RELAX) / 2
-        p2_threshold = (self.P2_FLEX + self.P2_RELAX) / 2
+        
+        p1_threshold = (self.P1_FLEX + self.P1_RELAX) * threshold
+        p2_threshold = (self.P2_FLEX + self.P2_RELAX) * threshold
         avg1 = 1.0 if avg1 >= p1_threshold else 0.
         avg2 = 1.0 if avg2 >= p2_threshold else 0.
         self.last_p1 = avg1
@@ -107,10 +108,3 @@ class Controls:
             self.P1_FLEX = float(np.mean(ch1))
         if ch2 is not None and len(ch2) > 0:
             self.P2_FLEX = float(np.mean(ch2))
-    
-    def input_binary(self) -> Tuple[float, float]:
-        """Merged binary inputs with BLE priority.
-        Returns floats in {0.0, 1.0} per player.
-        BLE analog values are thresholded using BLE_BINARY_THRESHOLD.
-        """
-        return self.get_data()
