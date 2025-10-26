@@ -163,7 +163,7 @@ class TwinSunsDuel(Controls):
     def _read_inputs(self) -> Tuple[float, float]:
         # Use Controls to merge keyboard/BLE (BLE has priority)
         try:
-            return self.controls.input_binary()
+            return self.controls.get_data()
         except Exception:
             # Fallback: no input if something goes wrong
             return 0.0, 0.0

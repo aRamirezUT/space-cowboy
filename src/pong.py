@@ -110,7 +110,7 @@ class Game():
 
     # --------------------------- Physics & Rules --------------------------
     def update(self, dt: float):
-        d1, d2 = self.controls.input_binary()
+        d1, d2 = self.controls.get_data()
         
         d1 = 1 if d1 < 0.5 else (-1 if d1 > 0.5 else 0)
         d2 = 1 if d2 < 0.5 else (-1 if d2 > 0.5 else 0)
