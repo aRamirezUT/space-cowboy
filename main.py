@@ -65,54 +65,37 @@ class Menu:
 
     # ------------------------- Game Launchers -------------------------
     def _run_quickdraw(self) -> None:
-        # End menu display and hand off to the game; restore menu after return
-        self._teardown_display()
-        try:
-            mod = importlib.import_module('quickdraw')
-            cls = getattr(mod, 'QuickdrawGame')
-            cls().run()
-        finally:
-            self._recreate_display()
+        # Launch game in hosted mode using the existing window for seamless return
+        mod = importlib.import_module('quickdraw')
+        cls = getattr(mod, 'QuickdrawGame')
+        cls(screen=self.screen, own_display=False).run()
 
     def _run_twin_suns_duel(self) -> None:
-        self._teardown_display()
-        try:
-            mod = importlib.import_module('twin_suns_duel')
-            cls = getattr(mod, 'TwinSunsDuel')
-            cls().run()
-        finally:
-            self._recreate_display()
+        mod = importlib.import_module('twin_suns_duel')
+        cls = getattr(mod, 'TwinSunsDuel')
+        cls(screen=self.screen, own_display=False).run()
 
     def _run_pong(self) -> None:
-        self._teardown_display()
-        try:
-            mod = importlib.import_module('pong')
-            cls = getattr(mod, 'Game')
-            cls().run()
-        finally:
-            self._recreate_display()
+        mod = importlib.import_module('pong')
+        cls = getattr(mod, 'Game')
+        cls(screen=self.screen, own_display=False).run()
 
     def _quit_menu(self) -> None:
         self.running = False
 
     # ------------------------- Display helpers ------------------------
     def _teardown_display(self) -> None:
-        try:
-            # Fully quit pygame so that games can re-initialize cleanly
-            pygame.quit()
-        except Exception:
-            pass
+        # No-op in seamless mode; we keep the window and pygame initialized
+        return
 
     def _recreate_display(self) -> None:
-        # Re-initialize pygame and rebuild display and fonts after a game exits
-        pygame.init()
-        flags = pygame.HWSURFACE | pygame.DOUBLEBUF | (pygame.FULLSCREEN if self.fullscreen else pygame.RESIZABLE)
-        size = (0, 0) if self.fullscreen else self.base_size
-        self.screen = pygame.display.set_mode(size, flags)
+        # No-op: we never tore down, keep current window. Ensure scene matches base size.
+        if self.screen is None:
+            flags = pygame.HWSURFACE | pygame.DOUBLEBUF | (pygame.FULLSCREEN if self.fullscreen else pygame.RESIZABLE)
+            size = (0, 0) if self.fullscreen else self.base_size
+            self.screen = pygame.display.set_mode(size, flags)
         self.scene = pygame.Surface(self.base_size)
         pygame.display.set_caption("Space Cowboy — Main Menu")
-        # Recreate fonts because pygame.quit() invalidates them
-        self._setup_fonts()
 
     def _setup_fonts(self) -> None:
         try:
@@ -136,7 +119,6 @@ class Menu:
     # ----------------------------- Loop -------------------------------
     def run(self) -> None:
         while self.running:
-            dt = self.clock.tick(60) / 1000.0
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -155,7 +137,7 @@ class Menu:
                         self.index = (self.index + 1) % len(self.entries)
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         # Invoke the selected entry
-                        label, action = self.entries[self.index]
+                        _, action = self.entries[self.index]
                         action()
 
             self._draw()

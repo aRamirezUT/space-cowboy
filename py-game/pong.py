@@ -64,13 +64,19 @@ from sprites import Ship, Ball
 from sprites.background import make_starfield_surface
 
 
+
 class Game(ControlsMixin):
-	def __init__(self):
+	def __init__(self, *, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None):
 		pygame.init()
 		pygame.display.set_caption("Space Cowboy Pong")
-		# Start in fullscreen by default; we still render to an offscreen world surface
-		self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
-		self.fullscreen = True
+		self._owns_display = bool(own_display) if own_display is not None else (screen is None)
+		# Start in fullscreen by default only when we own the display
+		if self._owns_display:
+			self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
+			self.fullscreen = True
+		else:
+			self.screen = screen  # type: ignore[assignment]
+			self.fullscreen = False
 		# Offscreen scene rendered at world resolution; scaled to window each frame
 		self.scene = pygame.Surface((WIDTH, HEIGHT))
 		# Prepared background surface (scaled to world size), or None for solid fill
@@ -316,7 +322,8 @@ class Game(ControlsMixin):
 				self.update(dt)
 			self.draw()
 
-		pygame.quit()
+		if getattr(self, '_owns_display', True):
+			pygame.quit()
 		
 
 if __name__ == "__main__":

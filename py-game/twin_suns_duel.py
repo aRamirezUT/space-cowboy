@@ -62,14 +62,20 @@ from sprites import Ship
 
 
 class TwinSunsDuel(ControlsMixin):
-    def __init__(self):
+    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
-        self.fullscreen = bool(FULLSCREEN_DEFAULT)
-        if self.fullscreen:
-            self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
+        self._owns_display = bool(own_display) if own_display is not None else (screen is None)
+        if self._owns_display:
+            self.fullscreen = bool(FULLSCREEN_DEFAULT)
+            if self.fullscreen:
+                self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
+            else:
+                self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         else:
-            self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+            self.screen = screen  # type: ignore[assignment]
+            # Keep current fullscreen/window state without forcing a change
+            self.fullscreen = False
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         f = load_fonts(small=24, medium=36, big=56, font_path=FONT_PATH)
@@ -137,7 +143,8 @@ class TwinSunsDuel(ControlsMixin):
 
             self._draw()
 
-        pygame.quit()
+        if self._owns_display:
+            pygame.quit()
 
     def _toggle_fullscreen(self):
         if self.fullscreen:
