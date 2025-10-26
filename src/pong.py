@@ -60,7 +60,7 @@ class Game():
     def __init__(self, *, controls:Controls, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None):
         super().__init__()
         pygame.init()
-        pygame.display.set_caption("Space Cowboy Pong")
+        pygame.display.set_caption("MYO BEBOP Pong")
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
         # Start in fullscreen by default only when we own the display
         if self._owns_display:
@@ -245,7 +245,7 @@ class Game():
             overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 140))
             self.scene.blit(overlay, (0, 0))
-            title = self.big_font.render("Space Cowboy Pong", True, FG_COLOR)
+            title = self.big_font.render("MYO BEBOP Pong", True, FG_COLOR)
             prompt = self.font.render("Press SPACE or ENTER to start", True, FG_COLOR)
             self.scene.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 2 - 60))
             self.scene.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 8))

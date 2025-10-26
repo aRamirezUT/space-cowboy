@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Space Cowboy: Main Menu
+MYO BEBOP: Main Menu
 
 Use this menu to launch the available pygame experiences:
 - Quickdraw Duel
@@ -22,6 +22,13 @@ import os
 import pygame
 import importlib
 
+from config import (
+    FONT_PATH, BASE_WIDTH, BASE_HEIGHT,
+    STAR_DENSITY,
+    STAR_SIZE_MIN,
+    STAR_SIZE_MAX
+)
+from src.sprites.background import make_starfield_surface
 from src.controls.controls import Controls
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -37,13 +44,25 @@ except Exception:
 class Menu:
     def __init__(self) -> None:
         pygame.init()
-        pygame.display.set_caption("Space Cowboy — Main Menu")
+        pygame.display.set_caption("MYO BEBOP — Main Menu")
         # Windowed default; F11 toggles fullscreen
         self.fullscreen = False
         self.base_size = (960, 540)
         self.screen = pygame.display.set_mode(self.base_size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         self.scene = pygame.Surface(self.base_size)
         self.clock = pygame.time.Clock()
+        # Pre-render a starfield background at base resolution
+        try:
+            self._bg_prepared = make_starfield_surface(
+                BASE_WIDTH,
+                BASE_HEIGHT,
+                density=STAR_DENSITY,
+                size_min=STAR_SIZE_MIN,
+                size_max=STAR_SIZE_MAX,
+                bg_color=(12, 12, 16),
+            )
+        except Exception:
+            self._bg_prepared = None
 
         # Fonts
         self.font_small = None
@@ -101,7 +120,7 @@ class Menu:
             size = (0, 0) if self.fullscreen else self.base_size
             self.screen = pygame.display.set_mode(size, flags)
         self.scene = pygame.Surface(self.base_size)
-        pygame.display.set_caption("Space Cowboy — Main Menu")
+        pygame.display.set_caption("MYO BEBOP — Main Menu")
 
     def _setup_fonts(self) -> None:
         try:
@@ -114,7 +133,7 @@ class Menu:
         # Try shared game fonts if available
         if load_fonts:
             try:
-                f = load_fonts(small=22, medium=32, big=56, font_path=None)
+                f = load_fonts(small=22, medium=32, big=56, font_path=FONT_PATH)
                 small = f.small
                 big = f.big
             except Exception:
@@ -150,6 +169,20 @@ class Menu:
 
         pygame.quit()
 
+    def _prepare_background(self):
+        """Generate and cache the world-sized starfield background via sprites.background."""
+        try:
+            self._bg_prepared = make_starfield_surface(
+                BASE_WIDTH,
+                BASE_HEIGHT,
+                density=STAR_DENSITY,
+                size_min=STAR_SIZE_MIN,
+                size_max=STAR_SIZE_MAX,
+                bg_color=(12, 12, 16),
+            )
+        except Exception:
+            self._bg_prepared = None
+
     def _toggle_fullscreen(self) -> None:
         if self.fullscreen:
             self.fullscreen = False
@@ -160,9 +193,12 @@ class Menu:
 
     def _draw(self) -> None:
         # Background
-        self.scene.fill((12, 12, 16))
+        if getattr(self, "_bg_prepared", None) is not None:
+            self.scene.blit(self._bg_prepared, (0, 0))
+        else:
+            self.scene.fill((12, 12, 16))
         # Title
-        title = self.font_big.render("Space Cowboy", True, (235, 235, 245))
+        title = self.font_big.render("MYO BEBOP", True, (235, 235, 245))
         tx = self.scene.get_width() // 2 - title.get_width() // 2
         self.scene.blit(title, (tx, 40))
 

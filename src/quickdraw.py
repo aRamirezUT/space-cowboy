@@ -66,7 +66,7 @@ class QuickdrawGame(Controls):
         # Determine if this game owns the display (standalone) or uses a shared window (hosted)
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
         if self._owns_display:
-            pygame.display.set_caption("Space Cowboy Quickdraw")
+            pygame.display.set_caption("MYO BEBOP Quickdraw")
             # Initialize display based on config
             self.fullscreen = bool(FULLSCREEN_DEFAULT)
             if self.fullscreen:
@@ -78,7 +78,7 @@ class QuickdrawGame(Controls):
             self.screen = screen  # type: ignore[assignment]
             self.fullscreen = pygame.display.get_surface() is not None and pygame.display.get_window_size() == pygame.display.get_surface().get_size()
             try:
-                pygame.display.set_caption("Space Cowboy Quickdraw")
+                pygame.display.set_caption("MYO BEBOP Quickdraw")
             except Exception:
                 pass
         self.scene = pygame.Surface((WIDTH, HEIGHT))
