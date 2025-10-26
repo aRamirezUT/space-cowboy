@@ -65,15 +65,26 @@ from sprites.background import make_starfield_surface
 
 
 class QuickdrawGame(ControlsMixin):
-    def __init__(self):
+    def __init__(self, *, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
         pygame.init()
-        pygame.display.set_caption("Space Cowboy Quickdraw")
-        # Initialize display based on config
-        self.fullscreen = bool(FULLSCREEN_DEFAULT)
-        if self.fullscreen:
-            self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
+        # Determine if this game owns the display (standalone) or uses a shared window (hosted)
+        self._owns_display = bool(own_display) if own_display is not None else (screen is None)
+        if self._owns_display:
+            pygame.display.set_caption("Space Cowboy Quickdraw")
+            # Initialize display based on config
+            self.fullscreen = bool(FULLSCREEN_DEFAULT)
+            if self.fullscreen:
+                self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
+            else:
+                self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         else:
-            self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+            # Hosted: reuse provided screen and do not change display mode
+            self.screen = screen  # type: ignore[assignment]
+            self.fullscreen = pygame.display.get_surface() is not None and pygame.display.get_window_size() == pygame.display.get_surface().get_size()
+            try:
+                pygame.display.set_caption("Space Cowboy Quickdraw")
+            except Exception:
+                pass
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         # Load game fonts via shared loader
@@ -166,7 +177,8 @@ class QuickdrawGame(ControlsMixin):
             self._update_state(now)
             self._draw(now)
 
-        pygame.quit()
+        if self._owns_display:
+            pygame.quit()
 
     # --------------------------- State & Input ----------------------------
     def _arm_countdown(self):
