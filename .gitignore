@@ -2,3 +2,4 @@
 webapp
 __pycache__
 liblsl/*
+.conda
