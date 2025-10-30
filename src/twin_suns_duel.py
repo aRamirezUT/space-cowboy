@@ -24,16 +24,15 @@ Run
   python3 py-game/twin_suns_duel.py
 """
 
-from __future__ import annotations
 
 import os
 import pygame
 
 from typing import Optional, Tuple
-from .controls import Controls
+from .controls.controls import Controls
 from .fonts.fonts import load_fonts
-from .sprites.background import make_starfield_surface
-from .sprites import Ship
+from .sprites.background import render_starfield_surface
+from .sprites.ship import Ship
 
 from .configs.twin_suns_duel import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
@@ -54,9 +53,8 @@ WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
 
 
-class TwinSunsDuel(Controls):
+class TwinSunsDuel:
     def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
-        super().__init__()
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -79,7 +77,7 @@ class TwinSunsDuel(Controls):
         self.med_font = f.medium
         self.big_font = f.big
 
-        self._bg = make_starfield_surface(WIDTH, HEIGHT, density=STAR_DENSITY, size_min=STAR_SIZE_MIN, size_max=STAR_SIZE_MAX, bg_color=BG_COLOR)
+        self._bg = render_starfield_surface(WIDTH, HEIGHT, density=STAR_DENSITY, size_min=STAR_SIZE_MIN, size_max=STAR_SIZE_MAX, bg_color=BG_COLOR)
 
         # Sprites: use shield for default (block), blaster for attack; east faces right (left player), west faces left (right player)
         spr_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites", "images")
@@ -163,7 +161,8 @@ class TwinSunsDuel(Controls):
     def _read_inputs(self) -> Tuple[float, float]:
         # Use Controls to merge keyboard/BLE (BLE has priority)
         try:
-            return self.controls.get_data()
+            keys = pygame.key.get_pressed()
+            return self.controls.get_inputs(keys)
         except Exception:
             # Fallback: no input if something goes wrong
             return 0.0, 0.0

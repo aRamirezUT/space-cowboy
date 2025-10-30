@@ -2,6 +2,19 @@
 
 ## py-game/pong.py
 
+MYO BEBOP:
+Play a suite of games controlled via BLE EMG Sensors or Keyboard.
+
+Keyboard Controls
+- Up/Down: navigate
+- Enter/Return: select
+- F11: toggle fullscreen
+- Q or ESC: quit
+BLE Controls
+- Flex: action (1)
+- Relax: no action (0)
+
+
 A simple two-player Pong game using pygame with alien spaceship players and template hooks for Bluetooth input.
 
 Controls

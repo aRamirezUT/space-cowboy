@@ -20,19 +20,17 @@ Sprite
 If pygame is missing, install it: pip install pygame
 """
 
-from __future__ import annotations
 
 import math
 import os
-import sys
 import random
 import pygame
 
 from typing import Optional, Tuple
-from .controls import Controls
+from .controls.controls import Controls
 from .fonts.fonts import load_fonts
-from .sprites import Ship
-from .sprites.background import make_starfield_surface
+from .sprites.ship import Ship
+from .sprites.background import render_starfield_surface
 
 # Use Quickdraw-specific config for sizes, colors, and FPS
 from .configs.quickdraw import (
@@ -59,9 +57,8 @@ SHIP_H = int(HEIGHT * SHIP_H_FRAC)
 MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
 
-class QuickdrawGame(Controls):
+class QuickdrawGame:
     def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
-        super().__init__()
         pygame.init()
         # Determine if this game owns the display (standalone) or uses a shared window (hosted)
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -240,7 +237,8 @@ class QuickdrawGame(Controls):
         if self.winner is not None:
             return
         try:
-            v1, v2 = self.controls.get_data(threshold=0.75)
+            keys = pygame.key.get_pressed()
+            v1, v2 = self.controls.get_inputs(keys, threshold=0.75)
         except Exception:
             v1, v2 = 0.0, 0.0
         p1_prev, p2_prev = self._bin_prev
@@ -442,7 +440,7 @@ class QuickdrawGame(Controls):
             self.scene.blit(label_outline, (x + dx, y + dy))
         self.scene.blit(label_main, (x, y))
 
-    def _blit_outlined_text(self, text_surface, pos: tuple[int, int], *, outline_px: int | None = None, outline_color = None, alpha: int | None = None):
+    def _blit_outlined_text(self, text_surface, pos: Tuple[int, int], *, outline_px: int | None = None, outline_color = None, alpha: int | None = None):
         """Blit text with an outline by drawing the outline in 8 directions, then the text.
         text_surface should already be rendered.
         """
@@ -578,7 +576,7 @@ class QuickdrawGame(Controls):
             pass
 
         # Fallback background
-        self._bg_prepared = make_starfield_surface(
+        self._bg_prepared = render_starfield_surface(
             WIDTH,
             HEIGHT,
             density=STAR_DENSITY,

@@ -18,15 +18,15 @@ Run
 If pygame is missing, install it: pip install pygame
 """
 
-from __future__ import annotations
 
 import math
 import random
 import pygame
 
-from .controls import Controls
-from .sprites import Ship, Ball
-from .sprites.background import make_starfield_surface
+from .controls.controls import Controls
+from .sprites.ship import Ship
+from .sprites.Asteroid import Asteroid
+from .sprites.background import render_starfield_surface
 
 from .configs.pong import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
@@ -55,8 +55,7 @@ ASTEROID_W = ASTEROID_H = max(1, int(round(HEIGHT * ASTEROID_SIZE_FRAC)))
 ASTEROID_SPEED = HEIGHT * ASTEROID_SPEED_FRAC
 
 
-# ------------------------------- Game --------------------------------------
-class Game():
+class Pong():
     def __init__(self, *, controls:Controls, screen: 'pygame.Surface | None' = None, own_display: 'bool | None' = None):
         super().__init__()
         pygame.init()
@@ -99,8 +98,8 @@ class Game():
             WIDTH - SHIP_MARGIN - SHIP_W, HEIGHT // 2 - SHIP_H // 2, SHIP_W, SHIP_H, HEIGHT,
             collision_mode=SHIP_COLLISION_MODE, collision_inflate=SHIP_COLLISION_INFLATE,
         )
-        # Ball uses an image; start stationary centered until user starts
-        self.ball = Ball(0, 0, ASTEROID_W, ASTEROID_H, 0.0, 0.0)
+        # Asteroid uses an image; start stationary centered until user starts
+        self.ball = Asteroid(0, 0, ASTEROID_W, ASTEROID_H, 0.0, 0.0)
         self.ball.reset(WIDTH, HEIGHT, direction=1)
 
         self.score = [0, 0]
@@ -110,7 +109,8 @@ class Game():
 
     # --------------------------- Physics & Rules --------------------------
     def update(self, dt: float):
-        d1, d2 = self.controls.get_data()
+        keys = pygame.key.get_pressed()
+        d1, d2 = self.controls.get_inputs(keys)
         
         d1 = 1 if d1 < 0.5 else (-1 if d1 > 0.5 else 0)
         d2 = 1 if d2 < 0.5 else (-1 if d2 > 0.5 else 0)
@@ -258,7 +258,7 @@ class Game():
 
     def _prepare_background(self):
         """Generate and cache the world-sized starfield background via sprites.background."""
-        self._bg_prepared = make_starfield_surface(
+        self._bg_prepared = render_starfield_surface(
             WIDTH,
             HEIGHT,
             density=STAR_DENSITY,
@@ -281,7 +281,6 @@ class Game():
         # Regenerate a fresh starfield for each restart for variety
         self._prepare_background()
 
-    # --------------------------- Main loop --------------------------------
     def run(self):
         while self.running:
             dt = self.clock.tick(FPS) / 1000.0
@@ -323,4 +322,4 @@ class Game():
         
 
 if __name__ == "__main__":
-    Game().run()
+    Pong().run()

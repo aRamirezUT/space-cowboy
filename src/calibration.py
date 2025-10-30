@@ -1,25 +1,11 @@
-from __future__ import annotations
 
 import time
-from typing import Tuple
-
 import pygame
 
-try:
-    from .controls import Controls
-except ImportError:  # pragma: no cover - direct script execution fallback
-    from controls import Controls  # type: ignore
-
-# Load shared font loader and configured font path
-try:
-    from .fonts.fonts import load_fonts
-except Exception:  # pragma: no cover
-    load_fonts = None  # type: ignore
-try:
-    from config import FONT_PATH  # repo-level config
-except Exception:  # pragma: no cover
-    FONT_PATH = None  # type: ignore
-
+from typing import Tuple
+from .controls.controls import Controls
+from .fonts.fonts import load_fonts
+from config import FONT_PATH 
 
 class Calibration:
     """Simple EMG calibration flow + binary input monitor."""

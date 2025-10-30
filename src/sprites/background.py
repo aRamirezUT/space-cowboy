@@ -1,17 +1,11 @@
-from __future__ import annotations
 
-import random
+import pygame, random
+
 from typing import Optional, Tuple
-
-try:
-    import pygame
-except Exception:
-    pygame = None  # type: ignore
 
 Color = Tuple[int, int, int]
 
-
-def make_starfield_surface(
+def render_starfield_surface(
     width: int,
     height: int,
     *,
@@ -21,7 +15,6 @@ def make_starfield_surface(
     bg_color: Color = (0, 0, 0),
     color_lo: int = 200,
     color_hi: int = 255,
-    rng: Optional[random.Random] = None,
 ) -> Optional[object]:
     """Generate a starfield surface of given size.
 
@@ -31,20 +24,18 @@ def make_starfield_surface(
         size_min, size_max: Inclusive pixel size range for each star.
         bg_color: Background color. Defaults to black.
         color_lo, color_hi: Brightness range for stars (grayscale-ish, slight blue tint).
-        rng: Optional random generator to make results reproducible.
 
     Returns:
         A pygame Surface with the generated starfield, or None if pygame isn't available
         or parameters are invalid.
     """
-    if pygame is None:
-        return None
+    
     if width <= 0 or height <= 0:
         return None
     if size_min <= 0 or size_max < size_min:
         return None
 
-    r = rng or random
+    r = random
 
     try:
         canvas = pygame.Surface((width, height))

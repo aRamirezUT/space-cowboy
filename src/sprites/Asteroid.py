@@ -1,17 +1,11 @@
-from __future__ import annotations
 
-import os
+import pygame, os
+
 from dataclasses import dataclass, field
 from typing import Optional
 
-try:
-    import pygame
-except Exception:
-    pygame = None  # type: ignore
-
-
 @dataclass
-class Ball:
+class Asteroid:
     x: float
     y: float
     w: int
