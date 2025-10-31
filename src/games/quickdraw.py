@@ -27,13 +27,13 @@ import random
 import pygame
 
 from typing import Optional, Tuple
-from .controls.controls import Controls
-from .fonts.fonts import load_fonts
-from .sprites.ship import Ship
-from .sprites.background import render_starfield_surface
+from src.controls.controls import Controls
+from src.sprites.player import Player
+from src.sprites.background import render_starfield_surface
+from src.games.base_game import BaseGame
 
 # Use Quickdraw-specific config for sizes, colors, and FPS
-from .configs.quickdraw import (
+from src.configs.quickdraw import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
     FPS,
     BG_COLOR, FG_COLOR, ACCENT,
@@ -43,66 +43,43 @@ from .configs.quickdraw import (
     GROUND_FRAC, FOOT_MARGIN_PX,
     FULLSCREEN_DEFAULT,
     TEXT_OUTLINE_PX, TEXT_OUTLINE_COLOR,
-    STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX,
-    FONT_PATH,
+    STAR_DENSITY, STAR_SIZE_MIN, STAR_SIZE_MAX
 )
 
 # Logical world size (fixed) and initial display size
 WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
 
-# Ship sizing and placement derived from config
+# Player sizing and placement derived from config
 SHIP_W = int(HEIGHT * SHIP_H_FRAC * SHIP_ASPECT_SCALE)
 SHIP_H = int(HEIGHT * SHIP_H_FRAC)
 MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
 
 
-class QuickdrawGame:
-    def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
-        pygame.init()
-        # Determine if this game owns the display (standalone) or uses a shared window (hosted)
-        self._owns_display = bool(own_display) if own_display is not None else (screen is None)
-        if self._owns_display:
+class QuickdrawGame(BaseGame):
+    def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None):
+        # Use the configured WIDTH and HEIGHT as base size
+        base_size = (WIDTH, HEIGHT)
+        super().__init__(controls=controls, screen=screen, base_size=base_size)
+        try:
             pygame.display.set_caption("MYO BEBOP Quickdraw")
-            # Initialize display based on config
-            self.fullscreen = bool(FULLSCREEN_DEFAULT)
-            if self.fullscreen:
-                self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
-            else:
-                self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-        else:
-            # Hosted: reuse provided screen and do not change display mode
-            self.screen = screen  # type: ignore[assignment]
-            self.fullscreen = pygame.display.get_surface() is not None and pygame.display.get_window_size() == pygame.display.get_surface().get_size()
-            try:
-                pygame.display.set_caption("MYO BEBOP Quickdraw")
-            except Exception:
-                pass
-        self.scene = pygame.Surface((WIDTH, HEIGHT))
-        self.clock = pygame.time.Clock()
-        # Optional BLE provider for Controls
-        self.controls = controls
-        # Load game fonts via shared loader
-        fonts = load_fonts(small=28, medium=40, big=72, font_path=FONT_PATH)
-        self.font = fonts.small
-        self.med_font = fonts.medium
-        self.big_font = fonts.big
+        except Exception:
+            pass
 
         self._bg_prepared = None
         self._prepare_background()
 
-        # Assets: specific facing/state sprites
-        spr_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites", "images")
-        self.left_holstered = os.path.join(spr_dir, "space-cowboy-holstered-east-facing.png")
-        self.right_holstered = os.path.join(spr_dir, "space-cowboy-holstered-west-facing.png")
-        self.left_drawn = os.path.join(spr_dir, "space-cowboy-drawn-east-facing.png")
-        self.right_drawn = os.path.join(spr_dir, "space-cowboy-drawn-west-facing.png")
+        # Assets: specific facing/state sprites using centralized sprite paths
+        self.left_holstered = BaseGame.get_sprite_path("left_holstered", "quickdraw")
+        self.right_holstered = BaseGame.get_sprite_path("right_holstered", "quickdraw")
+        self.left_drawn = BaseGame.get_sprite_path("left_drawn", "quickdraw")
+        self.right_drawn = BaseGame.get_sprite_path("right_drawn", "quickdraw")
 
         # Place cowboys near the ground line defined by config
         ground_y = int(HEIGHT * GROUND_FRAC)
         base_y = ground_y - FOOT_MARGIN_PX - SHIP_H
-        self.left = Ship(MARGIN_X, base_y, SHIP_W, SHIP_H, HEIGHT, image_path=self.left_holstered)
-        self.right = Ship(WIDTH - MARGIN_X - SHIP_W, base_y, SHIP_W, SHIP_H, HEIGHT, image_path=self.right_holstered)
+        self.left = Player(MARGIN_X, base_y, SHIP_W, SHIP_H, HEIGHT, image_path=self.left_holstered)
+        self.right = Player(WIDTH - MARGIN_X - SHIP_W, base_y, SHIP_W, SHIP_H, HEIGHT, image_path=self.right_holstered)
 
         # State machine
         self.running = True
@@ -147,33 +124,17 @@ class QuickdrawGame:
             now = pygame.time.get_ticks()
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                elif event.type == pygame.VIDEORESIZE:
-                    if not getattr(self, 'fullscreen', False):
-                        self.screen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+                if self.handle_common_events(event):
+                    continue
                 elif event.type == pygame.KEYDOWN:
-                    if event.key in (pygame.K_ESCAPE, pygame.K_q):
-                        self.running = False
-                    elif event.key == pygame.K_r:
+                    if event.key == pygame.K_r:
                         self._restart()
-                    elif event.key == pygame.K_F11:
-                        if getattr(self, 'fullscreen', False):
-                            self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-                            self.fullscreen = False
-                        else:
-                            self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
-                            self.fullscreen = True
                     elif self.waiting_for_start and event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self._arm_countdown()
             # Poll merged input each frame for 0->1 edges
             self._handle_draw_inputs()
-
             self._update_state(now)
             self._draw(now)
-
-        if self._owns_display:
-            pygame.quit()
 
     # --------------------------- State & Input ----------------------------
     def _arm_countdown(self):
@@ -348,7 +309,7 @@ class QuickdrawGame:
         # UI overlays
         if self.waiting_for_start:
             self._overlay_center_outlined(self.big_font, "Quickdraw Duel", FG_COLOR, y=HEIGHT//2 - 80, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
-            self._overlay_center_outlined(self.font, "Press SPACE or ENTER to arm", FG_COLOR, y=HEIGHT//2 + 8, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
+            self._overlay_center_outlined(self.small_font, "Press SPACE or ENTER to arm", FG_COLOR, y=HEIGHT//2 + 8, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
         else:
             if self.winner is None:
                 # Show phase text: READY -> Set -> (silent random delay) -> DRAW! with distinct colors and background
@@ -369,13 +330,10 @@ class QuickdrawGame:
             else:
                 msg = "Player 1 drew first!" if self.winner == 0 else "Player 2 drew first!"
             self._overlay_center_outlined(self.med_font, msg, (240, 210, 80), y=HEIGHT//2 - 120, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
-            self._overlay_center_outlined(self.font, "Press R to restart • Q to quit", FG_COLOR, y=HEIGHT//2 - 76, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
+            self._overlay_center_outlined(self.small_font, "Press R to restart • Q to quit", FG_COLOR, y=HEIGHT//2 - 76, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR)
 
-        # Scale scene to display
-        display_size = self.screen.get_size()
-        scaled = pygame.transform.smoothscale(self.scene, display_size)
-        self.screen.blit(scaled, (0, 0))
-        pygame.display.flip()
+        # Use shared presentation method
+        self.present_scene()
 
     def _overlay_center(self, font, text: str, color, *, y: int):
         surf = font.render(text, True, color)
@@ -409,15 +367,15 @@ class QuickdrawGame:
 
     # (fonts are loaded via fonts.fonts)
 
-    def _draw_nameplate(self, ship: Ship, text: str, *, dimmed: bool = False):
+    def _draw_nameplate(self, ship: Player, text: str, *, dimmed: bool = False):
         # Render outlined title below the player's sprite (no background box)
         # Place under the sprite, clamp to bottom margin
         # Compute text width first using font metrics
-        label_tmp = self.font.render(text, True, FG_COLOR)
+        label_tmp = self.small_font.render(text, True, FG_COLOR)
         tx = int(ship.x + ship.w // 2 - label_tmp.get_width() // 2)
         ty = int(min(HEIGHT - label_tmp.get_height() - 4, ship.y + ship.h + 6))
         alpha = 255 if not dimmed else 140
-        self._draw_text_outlined(self.font, text, FG_COLOR, tx, ty, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR, alpha=alpha)
+        self._draw_text_outlined(self.small_font, text, FG_COLOR, tx, ty, outline_px=TEXT_OUTLINE_PX, outline_color=TEXT_OUTLINE_COLOR, alpha=alpha)
 
     def _draw_text_outlined(self, font, text: str, text_color, x: int, y: int, *, outline_px: int | None = None, outline_color = None, alpha: int | None = None):
         if outline_px is None:
@@ -494,7 +452,7 @@ class QuickdrawGame:
                 main = text_surface
         self.scene.blit(main, (x, y))
 
-    def _draw_player(self, ship: Ship, *, facing_right: bool, now_ms: int, is_winner: bool, is_kill_target: bool = False):
+    def _draw_player(self, ship: Player, *, facing_right: bool, now_ms: int, is_winner: bool, is_kill_target: bool = False):
         # Kill effect overrides normal drawing for the losing player once triggered
         if is_kill_target and self.kill_start_ms is not None:
             prog = max(0.0, min(1.0, (now_ms - self.kill_start_ms) / float(self.kill_duration)))
@@ -524,7 +482,7 @@ class QuickdrawGame:
             amp = max(0.0, 0.16 * math.exp(-1.6 * t))
             pulse = math.sin(2.0 * math.pi * (2.2 * t))  # 2.2 Hz pulse
             scale = 1.0 + amp * pulse
-            # Access cached image from Ship and scale it
+            # Access cached image from Player and scale it
             try:
                 # Load images if needed
                 ship._ensure_images()  # type: ignore[attr-defined]
@@ -542,7 +500,7 @@ class QuickdrawGame:
                 self.scene.blit(scaled, (int(off_x), int(off_y)))
                 return
             # Fallback to normal draw if anything goes wrong
-        # Default: draw normally via Ship
+        # Default: draw normally via Player
         ship.draw(self.scene, facing_right=facing_right, fg_color=FG_COLOR, accent=ACCENT)
 
     def _prepare_background(self):
@@ -553,7 +511,7 @@ class QuickdrawGame:
         Falls back to the starfield if the image isn't available.
         """
         try:
-            bg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites", "images", "western-background.png")
+            bg_path = BaseGame.get_sprite_path("background", "quickdraw")
             if os.path.isfile(bg_path):
                 src = pygame.image.load(bg_path).convert()
                 iw, ih = src.get_width(), src.get_height()
@@ -620,7 +578,3 @@ class QuickdrawGame:
         self.bullet_start = (float(sx), float(sy))
         self.bullet_end = (float(ex), float(ey))
         self.bullet_start_ms = pygame.time.get_ticks()
-
-
-if __name__ == "__main__":
-    QuickdrawGame().run()

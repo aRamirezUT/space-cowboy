@@ -10,7 +10,7 @@ WINDOW_SCALE = 1.0  # adjust between 0.1 and 1.0 as desired
 FPS = 75
 
 # Size and speed scalers (all 0..1), expressed relative to BASE dimensions
-# Ship is square; size relative to height. Values chosen to match previous pixels at base res.
+# Player is square; size relative to height. Values chosen to match previous pixels at base res.
 SHIP_SIZE_FRAC = 92 / BASE_HEIGHT           # ~0.1704 of height
 SHIP_MARGIN_FRAC = 30 / BASE_WIDTH          # ~0.03125 of width
 SHIP_SPEED_FRAC = 420.0 / BASE_HEIGHT       # ~0.7778 of height per second
@@ -34,7 +34,7 @@ DOME_OUTSIDE_OFFSET_FRAC = 0.0
 # Vertical adjustment relative to the top oval center (fraction of the top oval height)
 DOME_VERTICAL_OFFSET_FRAC = 0.0
 
-# Ship collision box controls
+# Player collision box controls
 # - mode "box": use full ship bounding box
 # - mode "content": use the scaled sprite content area only
 SHIP_COLLISION_MODE = "content"  # "box" or "content"

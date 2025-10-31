@@ -29,12 +29,12 @@ import os
 import pygame
 
 from typing import Optional, Tuple
-from .controls.controls import Controls
-from .fonts.fonts import load_fonts
-from .sprites.background import render_starfield_surface
-from .sprites.ship import Ship
+from src.controls.controls import Controls
+from src.sprites.background import render_starfield_surface
+from src.sprites.player import Player
+from src.games.base_game import BaseGame
 
-from .configs.twin_suns_duel import (
+from src.configs.twin_suns_duel import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
     FPS,
     BG_COLOR, FG_COLOR, ACCENT, ALERT, WARNING,
@@ -53,38 +53,25 @@ WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
 
 
-class TwinSunsDuel:
-    def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
-        pygame.init()
+class TwinSunsDuel(BaseGame):
+    def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None):
+        base_size = (WIDTH, HEIGHT)
+        super().__init__(controls=controls, screen=screen, base_size=base_size)
         pygame.display.set_caption("Twin Suns Duel")
-        self._owns_display = bool(own_display) if own_display is not None else (screen is None)
-        if self._owns_display:
-            self.fullscreen = bool(FULLSCREEN_DEFAULT)
-            if self.fullscreen:
-                self.screen = pygame.display.set_mode((0, 0), pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.FULLSCREEN)
-            else:
-                self.screen = pygame.display.set_mode(INITIAL_DISPLAY_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-        else:
-            self.screen = screen  # type: ignore[assignment]
-            # Keep current fullscreen/window state without forcing a change
-            self.fullscreen = False
+        self.screen = screen  # type: ignore[assignment]
         # Optional BLE provider for Controls
         self.controls = controls
         self.scene = pygame.Surface((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
-        f = load_fonts(small=24, medium=36, big=56, font_path=FONT_PATH)
-        self.font = f.small
-        self.med_font = f.medium
-        self.big_font = f.big
+        # Setup fonts using the centralized font manager
 
         self._bg = render_starfield_surface(WIDTH, HEIGHT, density=STAR_DENSITY, size_min=STAR_SIZE_MIN, size_max=STAR_SIZE_MAX, bg_color=BG_COLOR)
 
         # Sprites: use shield for default (block), blaster for attack; east faces right (left player), west faces left (right player)
-        spr_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites", "images")
-        self.left_shield = os.path.join(spr_dir, "cowboy-shield-east.png")
-        self.right_shield = os.path.join(spr_dir, "cowboy-shield-west.png")
-        self.left_blaster = os.path.join(spr_dir, "cowboy-blaster-east.png")
-        self.right_blaster = os.path.join(spr_dir, "cowboy-blaster-west.png")
+        self.left_shield = BaseGame.get_sprite_path("left_shield", "twin_suns")
+        self.right_shield = BaseGame.get_sprite_path("right_shield", "twin_suns")
+        self.left_blaster = BaseGame.get_sprite_path("left_blaster", "twin_suns")
+        self.right_blaster = BaseGame.get_sprite_path("right_blaster", "twin_suns")
 
         # Size/placement
         self.SHIP_W = int(HEIGHT * SHIP_HEIGHT_FRAC * SHIP_ASPECT_SCALE)
@@ -93,8 +80,8 @@ class TwinSunsDuel:
         ground_y = int(HEIGHT * GROUND_FRAC)
         base_y = ground_y - FOOT_MARGIN_PX - self.SHIP_H
 
-        self.left_ship = Ship(self.MARGIN_X, base_y, self.SHIP_W, self.SHIP_H, HEIGHT, image_path=self.left_shield)
-        self.right_ship = Ship(WIDTH - self.MARGIN_X - self.SHIP_W, base_y, self.SHIP_W, self.SHIP_H, HEIGHT, image_path=self.right_shield)
+        self.left_ship = Player(self.MARGIN_X, base_y, self.SHIP_W, self.SHIP_H, HEIGHT, image_path=self.left_shield)
+        self.right_ship = Player(WIDTH - self.MARGIN_X - self.SHIP_W, base_y, self.SHIP_W, self.SHIP_H, HEIGHT, image_path=self.right_shield)
         self.left_attacking = False
         self.right_attacking = False
 
@@ -117,28 +104,17 @@ class TwinSunsDuel:
             dt = self.clock.tick(FPS) / 1000.0
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                elif event.type == pygame.VIDEORESIZE:
-                    if not self.fullscreen:
-                        self.screen = pygame.display.set_mode(event.size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+                if self.handle_common_events(event):
+                    continue
                 elif event.type == pygame.KEYDOWN:
-                    if event.key in (pygame.K_ESCAPE, pygame.K_q):
-                        self.running = False
-                    elif event.key == pygame.K_F11:
-                        self._toggle_fullscreen()
-                    elif event.key == pygame.K_r:
+                    if event.key == pygame.K_r:
                         self._restart()
                     elif self.waiting_for_start and event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self.waiting_for_start = False
-
             if not self.waiting_for_start and self.winner is None:
                 self._update(dt)
 
             self._draw()
-
-        if self._owns_display:
-            pygame.quit()
 
     def _toggle_fullscreen(self):
         if self.fullscreen:
@@ -244,13 +220,13 @@ class TwinSunsDuel:
         y0 = 24
         if self.waiting_for_start:
             self._draw_center_outlined(self.big_font, "Twin Suns Duel", FG_COLOR, y0)
-            self._draw_center_outlined(self.font, "Press SPACE or ENTER to start", FG_COLOR, y0 + 40)
+            self._draw_center_outlined(self.small_font, "Press SPACE or ENTER to start", FG_COLOR, y0 + 40)
         elif self.winner is None:
             self._draw_center_outlined(self.med_font, "1 = Shoot  |  0 = Deflect", FG_COLOR, y0)
         else:
             msg = "Player 1 Wins!" if self.winner == 0 else "Player 2 Wins!"
             self._draw_center_outlined(self.med_font, msg, FG_COLOR, y0)
-            self._draw_center_outlined(self.font, "Press R to restart • Q to quit", FG_COLOR, y0 + 36)
+            self._draw_center_outlined(self.small_font, "Press R to restart • Q to quit", FG_COLOR, y0 + 36)
 
     # Gauges
         self._draw_gauges()
@@ -288,8 +264,8 @@ class TwinSunsDuel:
         self._draw_health_bar(x2, top_y + in_h + 6 + sh_h + 6, bar_w, hp_h, health_frac2)
 
         # Labels
-        self._draw_text_outlined(self.font, "Player 1", FG_COLOR, x1, top_y - 24)
-        self._draw_text_outlined(self.font, "Player 2", FG_COLOR, x2 + bar_w - self.font.size("Player 2")[0], top_y - 24)
+        self._draw_text_outlined(self.small_font, "Player 1", FG_COLOR, x1, top_y - 24)
+        self._draw_text_outlined(self.small_font, "Player 2", FG_COLOR, x2 + bar_w - self.small_font.size("Player 2")[0], top_y - 24)
 
     def _draw_input_bar(self, x: int, y: int, w: int, h: int, v: float, threshold: float):
         # Background
@@ -355,7 +331,3 @@ class TwinSunsDuel:
                 ship._img_left = None   # type: ignore[attr-defined]
             except Exception:
                 pass
-
-
-if __name__ == "__main__":
-    TwinSunsDuel().run()

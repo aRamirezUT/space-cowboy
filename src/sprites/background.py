@@ -15,7 +15,7 @@ def render_starfield_surface(
     bg_color: Color = (0, 0, 0),
     color_lo: int = 200,
     color_hi: int = 255,
-) -> Optional[object]:
+) -> Optional[pygame.Surface]:
     """Generate a starfield surface of given size.
 
     Args:

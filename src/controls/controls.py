@@ -1,9 +1,9 @@
+import pygame
+import numpy as np
 
 from typing import Tuple
-# from .exg import BLEServer
-# from .exg import EXGClient
-import numpy as np
-import pygame
+from .exg.ble_server import BLEServer
+from .exg.exg_client import EXGClient
 
 BLE_ENABLED = False
 
@@ -11,16 +11,15 @@ class Controls:
     """Reusable input helper for players utilizing BLE connections."""
     
     def __init__(self) -> None:
-        if BLE_ENABLED:
-            self.server = BLEServer()
-            self.server.start()
-            self.client = EXGClient()
-            self.P1_RELAX = 0.0
-            self.P1_FLEX = 1.0
-            self.P2_RELAX = 0.0
-            self.P2_FLEX = 1.0
-            self.last_p1 = 0.0
-            self.last_p2 = 0.0
+        self.server = BLEServer()
+        self.server.start()
+        self.client = EXGClient()
+        self.P1_RELAX = 0.0
+        self.P1_FLEX = 1.0
+        self.P2_RELAX = 0.0
+        self.P2_FLEX = 1.0
+        self.last_p1 = 0.0
+        self.last_p2 = 0.0
         
     # def __del__(self) -> None:
     #     self.server.stop()
@@ -95,6 +94,5 @@ class Controls:
         if BLE_ENABLED:
             ble_inputs = self.get_data(threshold=threshold)
             return ble_inputs
-        else:
-            keyboard_inputs = self.get_keyboard_inputs(inputs)
-            return keyboard_inputs
+        keyboard_inputs = self.get_keyboard_inputs(inputs)
+        return keyboard_inputs

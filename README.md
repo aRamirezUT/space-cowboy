@@ -27,13 +27,25 @@ Bluetooth
 	- `-1` for up, `0` for no input, `+1` for down.
 - When BLE returns a non-zero value, it overrides keyboard input for that frame.
 
+## Requirements
+### Linux
+   1. Python >= 3.10
+   1. [Anaconda or Miniconda](https://www.anaconda.com/download/success) (Miniconda will work fine for this application)
+### MacOS
+1. 
+### Windows
+Not Supported
+
+
+
+
 ### Setup
 
-Recommended: use a virtual environment.
+Recommended: use a conda environment
 
 ```
-python3 -m venv .venv
-source .venv/bin/activate
+conda activate <env_name>
+conda install conda-forge::liblsl && conda install conda-forge::pip
 pip install -r requirements.txt
 ```
 

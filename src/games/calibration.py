@@ -3,11 +3,11 @@ import time
 import pygame
 
 from typing import Tuple
-from .controls.controls import Controls
-from .fonts.fonts import load_fonts
-from config import FONT_PATH 
+from src.controls.controls import Controls
+from src.games.base_game import BaseGame
+from src.games.config import FONT_PATH 
 
-class Calibration:
+class Calibration(BaseGame):
     """Simple EMG calibration flow + binary input monitor."""
 
     def __init__(
@@ -18,9 +18,8 @@ class Calibration:
         own_display: bool | None = None,
         stage_seconds: float = 5.0,
     ) -> None:
-        pygame.init()
-        pygame.font.init()
-
+        super().__init__()
+        
         self.controls = controls
         self.stage_seconds = stage_seconds
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -37,21 +36,6 @@ class Calibration:
 
         self.scene = pygame.Surface(self.base_size)
         self.clock = pygame.time.Clock()
-        # Prefer shared custom font; fallback to system monospace
-        if load_fonts is not None:
-            try:
-                f = load_fonts(small=24, medium=32, big=64, font_path=FONT_PATH)
-                self.small_font = f.small
-                self.med_font = f.medium
-                self.big_font = f.big
-            except Exception:
-                self.big_font = pygame.font.SysFont("monospace", 64)
-                self.med_font = pygame.font.SysFont("monospace", 32)
-                self.small_font = pygame.font.SysFont("monospace", 24)
-        else:
-            self.big_font = pygame.font.SysFont("monospace", 64)
-            self.med_font = pygame.font.SysFont("monospace", 32)
-            self.small_font = pygame.font.SysFont("monospace", 24)
 
         self.stage = "relax"
         self._start_time = 0

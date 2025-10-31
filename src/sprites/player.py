@@ -1,21 +1,19 @@
 
+import pygame
 import os
+
 from dataclasses import dataclass, field
 from typing import Optional
 
-try:
-    import pygame
-except Exception:
-    pygame = None  # type: ignore
 
 
 @dataclass
-class Ship:
-    x: int
-    y: int
-    w: int
-    h: int
-    world_height: int
+class Player:
+    x: float
+    y: float
+    w: float
+    h: float
+    world_height: float
     image_path: Optional[str] = None
     _img_right: Optional[object] = field(default=None, init=False, repr=False)
     _img_left: Optional[object] = field(default=None, init=False, repr=False)

@@ -1,5 +1,3 @@
-import os
-
 # Base resolution used to derive fractional sizes
 BASE_WIDTH, BASE_HEIGHT = 960, 540
 
