@@ -1,3 +1,5 @@
+import os
+
 # Base resolution used to derive fractional sizes
 BASE_WIDTH, BASE_HEIGHT = 960, 540
 
@@ -17,11 +19,11 @@ ACCENT = (80, 200, 120)
 
 # Player sprite sizing and placement (fractions relative to BASE dimensions)
 # Height of each cowboy relative to screen height
-SHIP_HEIGHT_FRAC = 0.48
+PLAYER_HEIGHT_FRAC = 0.48
 # Horizontal size derived from height via aspect scale (tune as needed)
-SHIP_ASPECT_SCALE = 0.70
+PLAYER_ASPECT_SCALE = 0.70
 # Horizontal margin from edges as a fraction of screen width
-SHIP_MARGIN_FRAC = 0.1
+PLAYER_MARGIN_FRAC = 0.1
 
 # Vertical placement
 # Y position of the ground line as a fraction of total height (0.0 top .. 1.0 bottom)

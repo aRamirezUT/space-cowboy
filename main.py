@@ -5,38 +5,31 @@ from typing import Callable, List, Tuple
 from src.sprites.background import render_starfield_surface
 from src.controls.controls import Controls
 from src.fonts.fonts import load_fonts
-from src.games.quickdraw import QuickdrawGame
-from src.games.twin_suns_duel import TwinSunsDuel
-from src.games.pong import Pong
-from src.games.calibration import Calibration
-from src.games.base_game import FontMixin, DisplayMixin
-from src.games.config import (
+from src.quickdraw import QuickdrawGame
+from src.twin_suns_duel import TwinSunsDuel
+from src.pong import Pong
+from src.calibration import Calibration
+from config import (
     FONT_PATH, BASE_WIDTH, BASE_HEIGHT,
     STAR_DENSITY,
     STAR_SIZE_MIN,
     STAR_SIZE_MAX
 )
 
-class Menu(FontMixin, DisplayMixin):
+class Menu:
     def __init__(self) -> None:
         pygame.init()
         pygame.display.set_caption("MYO BEBOP: Space Cowboy — Main Menu")
-        
-        # Initialize controls first
-        controls = Controls()
-        
-        # Initialize the display with our base size
-        base_size = (960, 540)
-        screen = pygame.display.set_mode(base_size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-        
-        # Initialize mixins
-        FontMixin.__init__(self)
-        DisplayMixin.__init__(self, controls=controls, screen=screen, base_size=base_size)
-        
-        # Setup fonts after mixin initialization
-        self.setup_fonts()
-        
+        self.fullscreen = False
+        self.base_size = (960, 540)
+        self.screen = pygame.display.set_mode(self.base_size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+        self.scene = pygame.Surface(self.base_size)
+        self.clock = pygame.time.Clock()
         self.index = 0
+        self.running = True
+        self.font_small = None
+        self.font_big = None
+        self.setup_fonts()
         self._bg_prepared = render_starfield_surface(
                 BASE_WIDTH,
                 BASE_HEIGHT,
@@ -45,6 +38,7 @@ class Menu(FontMixin, DisplayMixin):
                 size_max=STAR_SIZE_MAX,
                 bg_color=(12, 12, 16),
             )
+        self.controls = Controls()
         self.menu: List[Tuple[str, Callable[[], None]]] = [
             ("Quickdraw Duel", self.run_quickdraw),
             ("Twin Suns Duel", self.run_twin_suns_duel),
@@ -54,17 +48,26 @@ class Menu(FontMixin, DisplayMixin):
 
     # Game Launchers
     def run_quickdraw(self) -> None:
-        QuickdrawGame(controls=self.controls, screen=self.screen).run()
+        QuickdrawGame(controls=self.controls, screen=self.screen, own_display=False).run()
 
     def run_twin_suns_duel(self) -> None:
-        TwinSunsDuel(controls=self.controls, screen=self.screen).run()
+        TwinSunsDuel(controls=self.controls, screen=self.screen, own_display=False).run()
 
     def run_pong(self) -> None:
-        Pong(controls=self.controls, screen=self.screen).run()
+        Pong(controls=self.controls, screen=self.screen, own_display=False).run()
 
     def run_calibration(self) -> None:
-        Calibration(controls=self.controls, screen=self.screen).run()
+        Calibration(controls=self.controls, screen=self.screen, own_display=False).run()
         
+    def setup_fonts(self) -> None:
+        pygame.font.init()
+        f = load_fonts(small=22, medium=32, big=56, font_path=FONT_PATH)
+        if not f:
+            self.font_small = pygame.font.SysFont("monospace", 22)
+            self.font_big = pygame.font.SysFont("monospace", 48)
+        self.font_small = f.small
+        self.font_big = f.big
+
     # Entry point
     # Unfortunately match/case is not supported for pygame.event.get()
     # Bear with the block indentation.
@@ -120,7 +123,7 @@ class Menu(FontMixin, DisplayMixin):
         else:
             self.scene.fill((12, 12, 16))
         # Title
-        title = self.big_font.render("MYO BEBOP", True, (235, 235, 245))
+        title = self.font_big.render("MYO BEBOP", True, (235, 235, 245))
         tx = self.scene.get_width() // 2 - title.get_width() // 2
         self.scene.blit(title, (tx, 40))
 
@@ -130,13 +133,13 @@ class Menu(FontMixin, DisplayMixin):
         for i, (label, _) in enumerate(self.menu):
             selected = (i == self.index)
             color = (80, 200, 120) if selected else (235, 235, 245)
-            text = self.small_font.render(("→ " if selected else "  ") + label, True, color)
+            text = self.font_small.render(("→ " if selected else "  ") + label, True, color)
             x = self.scene.get_width() // 2 - text.get_width() // 2
             y = base_y + i * line_h
             self.scene.blit(text, (x, y))
 
         # Create Footer
-        footer = self.small_font.render("Up/Down: Navigate  •  Enter: Select  •  F11: Fullscreen  •  Q/Esc: Quit", True, (180, 180, 190))
+        footer = self.font_small.render("Up/Down: Navigate  •  Enter: Select  •  F11: Fullscreen  •  Q/Esc: Quit", True, (180, 180, 190))
         fx = self.scene.get_width() // 2 - footer.get_width() // 2
         fy = self.scene.get_height() - 36
         self.scene.blit(footer, (fx, fy))
@@ -150,3 +153,4 @@ class Menu(FontMixin, DisplayMixin):
 
 if __name__ == "__main__":
     Menu().run()
+    

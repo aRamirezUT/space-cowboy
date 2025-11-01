@@ -32,11 +32,11 @@ ATTACK_COOLDOWN_SECONDS = 0.2  # limit shots to ~2 per second while held
 
 # Sprites (cowboy blaster/shield) sizing and placement
 # Height of each cowboy relative to screen height
-SHIP_HEIGHT_FRAC = 0.46
+PLAYER_HEIGHT_FRAC = 0.46
 # Approximate aspect scale used to pick a reasonable bounding width from height
-SHIP_ASPECT_SCALE = 0.70
+PLAYER_ASPECT_SCALE = 0.70
 # Horizontal margin from edges as a fraction of screen width
-SHIP_MARGIN_FRAC = 0.12
+PLAYER_MARGIN_FRAC = 0.12
 # Ground line placement and foot gap
 GROUND_FRAC = 0.92
 FOOT_MARGIN_PX = 8
