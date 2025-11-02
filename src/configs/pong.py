@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os
 
 # Base resolution used to derive fractional sizes
@@ -29,18 +28,6 @@ BG_COLOR = (12, 12, 16)
 FG_COLOR = (235, 235, 245)
 ACCENT = (80, 200, 120)
 
-# Dome positioning (tweakable, 0..1)
-# How far to place the dome outside the top oval horizontally (fraction of the top oval width)
-DOME_OUTSIDE_OFFSET_FRAC = 0.0
-# Vertical adjustment relative to the top oval center (fraction of the top oval height)
-DOME_VERTICAL_OFFSET_FRAC = 0.0
-
-# Ship collision box controls
-# - mode "box": use full ship bounding box
-# - mode "content": use the scaled sprite content area only
-SHIP_COLLISION_MODE = "content"  # "box" or "content"
-SHIP_COLLISION_INFLATE = 0        # inflate (+) or deflate (-) the collision rect (width and height)
-
 # Only the "front" portion of the ship should be hittable so asteroids behind the ship
 # don't interact with the collision box. Fraction of ship width to use as the front hitbox
 # (0..1). For the left ship (facing right), this is the rightmost fraction; for the right
@@ -55,3 +42,11 @@ STAR_SIZE_MIN, STAR_SIZE_MAX = 1, 2  # pixel size range for stars
 # Example (Hercules): "fonts/HerculesPixelRegular/HerculesPixelFontRegular-ovAX0.otf"
 # Leave as None or empty string to use the system default font.
 FONT_PATH = "fonts/HerculesPixelRegular/HerculesPixelFontRegular-ovAX0.otf"
+IMG_NAME = "alien-saucer.png"
+
+# UI Constants
+CENTER_LINE_COLOR = (40, 40, 48)
+OVERLAY_ALPHA = 140
+DASH_HEIGHT = 10
+DASH_GAP = 10
+CENTER_LINE_WIDTH = 2

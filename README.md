@@ -1,34 +1,216 @@
-# space-cowboy
+# Space Cowboy 🤠
 
-## py-game/pong.py
+**MYO BEBOP**: A suite of retro-style pygame games designed for dual input control via keyboard or EMG sensors through BLE connectivity.
 
-A simple two-player Pong game using pygame with alien spaceship players and template hooks for Bluetooth input.
-
-Controls
-- Player 1 spaceship: W (up) / S (down)
-- Player 2 spaceship: Up / Down arrows
-
-Bluetooth
-- The functions `poll_ble_player1()` and `poll_ble_player2()` in `py-game/pong.py` are templates.
-- Replace their bodies with non-blocking BLE polling (e.g., using bleak) and return:
-	- `-1` for up, `0` for no input, `+1` for down.
-- When BLE returns a non-zero value, it overrides keyboard input for that frame.
+## 🎮 Quick Start
 
 ### Setup
+```bash
+# Clone the repository
+git clone https://github.com/aRamirezUT/space-cowboy.git
+cd space-cowboy
 
-Recommended: use a virtual environment.
+# Create a conda environment (required for BLE)
+conda activate base
 
-```
-python3 -m venv .venv
-source .venv/bin/activate
+# Install required packages
+conda install conda-forge::liblsl
+conda install conda-forge::pip
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### Run
+### Launch Menu
+```bash
+python3 main.py
+```
+
+## 🎯 Games
+
+### 1. Quickdraw Duel
+*Western-themed timing dueling game*
+
+**Objective**: Be the first to draw after "DRAW!" appears
+- Press `SPACE/ENTER` to start countdown: READY → Set → (random delay) → DRAW!
+- First valid input after "DRAW!" wins
+- Drawing too early results in a foul and automatic loss
+
+**Controls**:
+- Player 1: `W` key
+- Player 2: `Up Arrow`
+
+**Assets**: Uses detailed cowboy sprites with holstered/drawn poses
+
+---
+
+### 2. Twin Suns Duel  
+*High-tension binary combat with resource management*
+
+**Objective**: Defeat opponent by attacking when they can't block
+- **Attack** (input > threshold): Shoot at opponent  
+- **Block** (input ≤ threshold): Deflect incoming attacks
+- Shield energy drains while blocking (3 seconds total)
+- When shield depletes, guard breaks and you become vulnerable
+- Simultaneous attacks cancel each other
+
+**Strategy**: Balance offense with shield conservation
+
+---
+
+### 3. Pong
+*Classic arcade game with alien spaceship paddles*
+
+**Objective**: Score points by getting the asteroid past opponent's paddle
+- First to reach the score limit wins
+- Asteroid speed increases after each rally
+- Uses alien saucer sprites for paddles
+
+**Controls**:
+- Player 1: `W` (up) / `S` (down)  
+- Player 2: `Up/Down Arrows`
+
+---
+
+### 4. Calibration
+*EMG sensor setup and testing utility*
+
+**Purpose**: Configure EMG thresholds for optimal gameplay
+- **Relax Phase**: Sets baseline EMG levels (5 seconds)
+- **Flex Phase**: Sets activation thresholds (5 seconds)  
+- **Monitor Phase**: Real-time binary input display
+
+**Essential for EMG users**: Ensures accurate muscle signal detection
+
+## 🎛️ Control Systems
+
+### Keyboard Controls
+- **Player 1**: `W` key (primary action)
+- **Player 2**: `Up Arrow` (primary action)
+- **Universal**: 
+  - `R`: Restart game
+  - `Q/ESC`: Quit
+  - `F11`: Toggle fullscreen
+  - `SPACE/ENTER`: Start/Select
+
+### EMG/BLE Controls
+- **Flex**: Action/Attack (binary 1)
+- **Relax**: Block/Default (binary 0)
+- Requires calibration before first use
+- Automatically overrides keyboard when active
+
+## 🏗️ Project Structure
 
 ```
-python3 py-game/pong.py
+space-cowboy/
+├── main.py                 # Main menu launcher
+├── requirements.txt        # Python dependencies
+├── src/
+│   ├── games/             # Game implementations
+│   │   ├── base_game.py   # Shared game functionality
+│   │   ├── quickdraw.py   # Western duel game
+│   │   ├── twin_suns_duel.py # Binary combat game
+│   │   ├── pong.py        # Classic paddle game
+│   │   └── calibration.py # EMG setup utility
+│   ├── controls/          # Input handling
+│   │   ├── controls.py    # Unified keyboard/EMG interface
+│   │   └── exg/           # EMG signal processing
+│   │       ├── ble_server.py    # BLE communication
+│   │       ├── exg_client.py    # Signal acquisition
+│   │       └── filtering/       # Signal filters (EMA, IIR, SMA)
+│   ├── sprites/           # Visual assets
+│   │   ├── player.py      # Player sprite class
+│   │   ├── Asteroid.py    # Ball/projectile sprite
+│   │   ├── background.py  # Starfield generation
+│   │   └── images/        # Sprite artwork
+│   ├── fonts/             # Typography system
+│   │   ├── fonts.py       # Font loading utilities
+│   │   └── HerculesPixelRegular/ # Pixel art font
+│   └── configs/           # Game-specific settings
+│       ├── main.py        # Shared configuration
+│       ├── pong.py        # Pong parameters
+│       ├── quickdraw.py   # Quickdraw parameters
+│       └── twin_suns_duel.py # Duel parameters
 ```
+
+## 🎨 Assets
+
+### Sprites
+- **Cowboys**: Holstered/drawn poses (east/west facing)
+- **Combat**: Blaster/shield variants for Twin Suns
+- **Space**: Alien saucer, asteroid, western background
+- **Format**: PNG with transparency support
+
+### Fonts  
+- **Primary**: Hercules Pixel Regular (retro pixel art style)
+- **Fallback**: System monospace fonts
+
+### Graphics
+All sprites are pixel art optimized for 960x540 base resolution with scaling support.
+
+## ⚙️ Configuration
+
+Each game has dedicated configuration files in `src/configs/`:
+- **Window settings**: Resolution, scaling, fullscreen defaults
+- **Gameplay parameters**: Speed, thresholds, timing
+- **Visual styling**: Colors, margins, UI layout
+- **Input mapping**: Key bindings, EMG thresholds
+
+Example customization:
+```python
+# src/configs/quickdraw.py
+PLAYER_HEIGHT_FRAC = 0.48    # Cowboy size relative to screen
+GROUND_FRAC = 1.0            # Ground line position  
+COUNTDOWN_TOTAL = 3000       # Milliseconds for ready sequence
+```
+
+## 🔬 EMG Integration
+
+### Hardware Requirements
+- Compatible EMG sensors (MYO BEBOP)
+- BLE connectivity
+- LSL (Lab Streaming Layer) support
+
+### Signal Processing Pipeline
+1. **Acquisition**: Raw EMG via BLE streaming
+2. **Filtering**: EMA/IIR noise reduction  
+3. **Calibration**: Personalized flex/relax thresholds
+4. **Binary Classification**: Real-time muscle state detection
+
+### Usage
+1. Enable `BLE_ENABLED = True` in `src/controls/controls.py`
+2. Run calibration before gaming sessions
+3. System automatically switches to EMG when available
+
+## 🛠️ Development
+
+### Dependencies
+- **pygame**: Game engine and graphics
+- **numpy**: Signal processing
+- **bleak**: BLE communication  
+- **pylsl**: Lab Streaming Layer
+- **scipy**: Advanced filtering
+
+### Architecture
+- **Modular design**: Shared base classes and utilities
+- **Configuration-driven**: Easy gameplay tuning
+- **Dual input support**: Seamless keyboard/EMG switching  
+- **Scalable rendering**: Fixed logical resolution with display scaling
+
+## 🎯 Resources
+
+### Pixel Art Creation
+- [Perchance AI Generator](https://perchance.org/ai-pixel-art-generator) - Backgrounds
+- [PixelLab AI](https://www.pixellab.ai/) - Character sprites
+- [Google Gemini](https://gemini.google.com/) - Asset generation
+- [PhotoRoom](https://www.photoroom.com/tools/background-remover) - Background removal
+
+### Typography
+- [FontSpace](https://www.fontspace.com/) - Pixel art fonts
+
+---
+
+**Built for MYO BEBOP EMG Gaming Platform** 🚀
 
 ## py-game/quickdraw.py
 

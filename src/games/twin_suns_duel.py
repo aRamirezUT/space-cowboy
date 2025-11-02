@@ -24,25 +24,24 @@ Run
   python3 py-game/twin_suns_duel.py
 """
 
-from __future__ import annotations
 
 import os
 import pygame
 
 from typing import Optional, Tuple
-from .controls import Controls
-from .fonts.fonts import load_fonts
-from .sprites.background import make_starfield_surface
-from .sprites import Ship
+from src.controls.controls import Controls
+from src.fonts.fonts import load_fonts
+from src.sprites.background import render_starfield_surface
+from src.sprites.player import Player
 
-from .configs.twin_suns_duel import (
+from src.configs.twin_suns_duel import (
     BASE_WIDTH, BASE_HEIGHT, WINDOW_SCALE,
     FPS,
     BG_COLOR, FG_COLOR, ACCENT, ALERT, WARNING,
     ATTACK_THRESHOLD, SHIELD_MAX_SECONDS, SHIELD_REGEN_RATE,
     ATTACK_COOLDOWN_SECONDS,
     HEALTH_MAX, HEALTH_DAMAGE_FRACTION,
-    SHIP_HEIGHT_FRAC, SHIP_ASPECT_SCALE, SHIP_MARGIN_FRAC, GROUND_FRAC, FOOT_MARGIN_PX,
+    PLAYER_HEIGHT_FRAC, PLAYER_ASPECT_SCALE, PLAYER_MARGIN_FRAC, GROUND_FRAC, FOOT_MARGIN_PX,
     INPUT_BAR_WIDTH_FRAC, INPUT_BAR_HEIGHT, SHIELD_BAR_HEIGHT, HEALTH_BAR_HEIGHT, GAUGE_MARGIN_PX,
     TEXT_OUTLINE_PX, TEXT_OUTLINE_COLOR,
     FULLSCREEN_DEFAULT,
@@ -54,9 +53,8 @@ WIDTH, HEIGHT = BASE_WIDTH, BASE_HEIGHT
 INITIAL_DISPLAY_SIZE = (int(BASE_WIDTH * WINDOW_SCALE), int(BASE_HEIGHT * WINDOW_SCALE))
 
 
-class TwinSunsDuel(Controls):
+class TwinSunsDuel:
     def __init__(self, *, controls:Controls, screen: Optional[pygame.Surface] = None, own_display: bool | None = None):
-        super().__init__()
         pygame.init()
         pygame.display.set_caption("Twin Suns Duel")
         self._owns_display = bool(own_display) if own_display is not None else (screen is None)
@@ -79,7 +77,7 @@ class TwinSunsDuel(Controls):
         self.med_font = f.medium
         self.big_font = f.big
 
-        self._bg = make_starfield_surface(WIDTH, HEIGHT, density=STAR_DENSITY, size_min=STAR_SIZE_MIN, size_max=STAR_SIZE_MAX, bg_color=BG_COLOR)
+        self._bg = render_starfield_surface(WIDTH, HEIGHT, density=STAR_DENSITY, size_min=STAR_SIZE_MIN, size_max=STAR_SIZE_MAX, bg_color=BG_COLOR)
 
         # Sprites: use shield for default (block), blaster for attack; east faces right (left player), west faces left (right player)
         spr_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites", "images")
@@ -89,14 +87,14 @@ class TwinSunsDuel(Controls):
         self.right_blaster = os.path.join(spr_dir, "cowboy-blaster-west.png")
 
         # Size/placement
-        self.SHIP_W = int(HEIGHT * SHIP_HEIGHT_FRAC * SHIP_ASPECT_SCALE)
-        self.SHIP_H = int(HEIGHT * SHIP_HEIGHT_FRAC)
-        self.MARGIN_X = int(WIDTH * SHIP_MARGIN_FRAC)
+        self.PLAYER_W = int(HEIGHT * PLAYER_HEIGHT_FRAC * PLAYER_ASPECT_SCALE)
+        self.PLAYER_H = int(HEIGHT * PLAYER_HEIGHT_FRAC)
+        self.MARGIN_X = int(WIDTH * PLAYER_MARGIN_FRAC)
         ground_y = int(HEIGHT * GROUND_FRAC)
-        base_y = ground_y - FOOT_MARGIN_PX - self.SHIP_H
+        base_y = ground_y - FOOT_MARGIN_PX - self.PLAYER_H
 
-        self.left_ship = Ship(self.MARGIN_X, base_y, self.SHIP_W, self.SHIP_H, HEIGHT, image_path=self.left_shield)
-        self.right_ship = Ship(WIDTH - self.MARGIN_X - self.SHIP_W, base_y, self.SHIP_W, self.SHIP_H, HEIGHT, image_path=self.right_shield)
+        self.left_player = Player(self.MARGIN_X, base_y, self.PLAYER_W, self.PLAYER_H, HEIGHT, image_path=self.left_shield)
+        self.right_player = Player(WIDTH - self.MARGIN_X - self.PLAYER_W, base_y, self.PLAYER_W, self.PLAYER_H, HEIGHT, image_path=self.right_shield)
         self.left_attacking = False
         self.right_attacking = False
 
@@ -163,7 +161,8 @@ class TwinSunsDuel(Controls):
     def _read_inputs(self) -> Tuple[float, float]:
         # Use Controls to merge keyboard/BLE (BLE has priority)
         try:
-            return self.controls.get_data()
+            keys = pygame.key.get_pressed()
+            return self.controls.get_inputs(keys)
         except Exception:
             # Fallback: no input if something goes wrong
             return 0.0, 0.0
@@ -238,8 +237,8 @@ class TwinSunsDuel(Controls):
 
         # Draw players (images are pre-oriented: left uses east, right uses west)
         # Pass facing_right=True to avoid flips and use the source orientation
-        self.left_ship.draw(self.scene, facing_right=True, fg_color=FG_COLOR, accent=ACCENT)
-        self.right_ship.draw(self.scene, facing_right=True, fg_color=FG_COLOR, accent=ACCENT)
+        self.left_player.draw(self.scene, facing_right=True)
+        self.right_player.draw(self.scene, facing_right=True)
 
         # Title / prompts
         y0 = 24
@@ -344,16 +343,16 @@ class TwinSunsDuel(Controls):
 
     # --------------------------- Sprites ---------------------------------
     def _set_player_pose(self, who: int, *, attack: bool):
-        ship = self.left_ship if who == 0 else self.right_ship
+        player = self.left_player if who == 0 else self.right_player
         if who == 0:
             path = self.left_blaster if attack else self.left_shield
         else:
             path = self.right_blaster if attack else self.right_shield
         if os.path.isfile(path):
-            ship.image_path = path
+            player.image_path = path
             try:
-                ship._img_right = None  # type: ignore[attr-defined]
-                ship._img_left = None   # type: ignore[attr-defined]
+                player._img_right = None  # type: ignore[attr-defined]
+                player._img_left = None   # type: ignore[attr-defined]
             except Exception:
                 pass
 

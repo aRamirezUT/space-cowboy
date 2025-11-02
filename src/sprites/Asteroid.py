@@ -1,17 +1,11 @@
-from __future__ import annotations
 
-import os
+import pygame, os
+
 from dataclasses import dataclass, field
 from typing import Optional
 
-try:
-    import pygame
-except Exception:
-    pygame = None  # type: ignore
-
-
 @dataclass
-class Ball:
+class Asteroid:
     x: float
     y: float
     w: int
@@ -26,8 +20,7 @@ class Ball:
             module_dir = os.path.dirname(os.path.abspath(__file__))
             self.image_path = os.path.join(module_dir, "images", "asteroid.png")
 
-    def rect(self):
-        assert pygame is not None
+    def rect(self) -> pygame.Rect:
         return pygame.Rect(int(self.x), int(self.y), int(self.w), int(self.h))
 
     def reset(self, world_w: int, world_h: int, *, direction: int = 1):
@@ -37,7 +30,6 @@ class Ball:
         self.vy = 0.0
 
     def draw(self, surface):
-        assert pygame is not None
         if self._img is None:
             self._load_image()
         if self._img is None:
@@ -46,7 +38,6 @@ class Ball:
 
     # ------------------------- Internal helpers -------------------------
     def _load_image(self):
-        assert pygame is not None
         path = self.image_path
         if not path or not os.path.isfile(path):
             self._img = None
