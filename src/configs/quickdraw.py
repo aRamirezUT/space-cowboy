@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os
 
 # Base resolution used to derive fractional sizes
@@ -16,15 +15,17 @@ FPS = 75
 # Colors
 BG_COLOR = (12, 12, 16)
 FG_COLOR = (235, 235, 245)
-ACCENT = (80, 200, 120)
+RED = (230, 70, 70)
+YELLOW = (240, 210, 80)
+GREEN = (80, 200, 120)
 
 # Player sprite sizing and placement (fractions relative to BASE dimensions)
 # Height of each cowboy relative to screen height
-SHIP_HEIGHT_FRAC = 0.48
+PLAYER_HEIGHT_FRAC = 0.48
 # Horizontal size derived from height via aspect scale (tune as needed)
-SHIP_ASPECT_SCALE = 0.70
+PLAYER_ASPECT_SCALE = 0.70
 # Horizontal margin from edges as a fraction of screen width
-SHIP_MARGIN_FRAC = 0.1
+PLAYER_MARGIN_FRAC = 0.1
 
 # Vertical placement
 # Y position of the ground line as a fraction of total height (0.0 top .. 1.0 bottom)
@@ -48,3 +49,15 @@ TEXT_OUTLINE_COLOR = (0, 0, 0)
 # Example (OldBlitz): "fonts/oldblitz-font/OldbitzDemo-BLl98.otf"
 # Leave as None to use system default.
 FONT_PATH = "fonts/HerculesPixelRegular/HerculesPixelFontRegular-ovAX0.otf"
+LEFT_HOLSTERED = "space-cowboy-holstered-east-facing.png"
+RIGHT_HOLSTERED = "space-cowboy-holstered-west-facing.png"
+LEFT_DRAWN = "space-cowboy-drawn-east-facing.png"
+RIGHT_DRAWN = "space-cowboy-drawn-west-facing.png"
+
+# UI Constants
+OVERLAY_ALPHA = 140
+DIMMED_ALPHA = 140
+WINNER_ANIMATION_DURATION = 1400
+BULLET_DURATION = 250
+KILL_DURATION = 900
+COUNTDOWN_TOTAL = 3000

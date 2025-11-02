@@ -1,53 +1,27 @@
-from __future__ import annotations
 
 import time
-from typing import Tuple
-
 import pygame
 
-try:
-    from .controls import Controls
-except ImportError:  # pragma: no cover - direct script execution fallback
-    from controls import Controls  # type: ignore
-
-# Load shared font loader and configured font path
-try:
-    from .fonts.fonts import load_fonts
-except Exception:  # pragma: no cover
-    load_fonts = None  # type: ignore
-try:
-    from config import FONT_PATH  # repo-level config
-except Exception:  # pragma: no cover
-    FONT_PATH = None  # type: ignore
-
+from typing import Tuple
+from src.controls.controls import Controls
+from src.fonts.fonts import load_fonts
+from src.configs.main import FONT_PATH 
 
 class Calibration:
     """Simple EMG calibration flow + binary input monitor."""
 
     def __init__(
         self,
-        *,
         controls: Controls,
         screen: pygame.Surface | None = None,
-        own_display: bool | None = None,
         stage_seconds: float = 5.0,
     ) -> None:
-        pygame.init()
-        pygame.font.init()
-
+        
         self.controls = controls
         self.stage_seconds = stage_seconds
-        self._owns_display = bool(own_display) if own_display is not None else (screen is None)
         self.base_size = (960, 540)
-        if self._owns_display:
-            pygame.display.set_caption("MYO BEBOP — Calibration")
-            self.screen = pygame.display.set_mode(self.base_size, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
-        else:
-            self.screen = screen  # type: ignore[assignment]
-            try:
-                pygame.display.set_caption("MYO BEBOP — Calibration")
-            except Exception:
-                pass
+        self.screen = screen
+        pygame.display.set_caption("MYO BEBOP — Calibration")
 
         self.scene = pygame.Surface(self.base_size)
         self.clock = pygame.time.Clock()
@@ -82,8 +56,6 @@ class Calibration:
             self._handle_events()
             self._update_stage()
             self._draw()
-        if self._owns_display:
-            pygame.display.quit()
 
     # ------------------------------------------------------------------ #
     def _handle_events(self) -> None:

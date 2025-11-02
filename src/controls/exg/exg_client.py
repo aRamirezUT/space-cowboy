@@ -6,8 +6,6 @@ from .filtering.ema import EMA
 
 from .ble_server import TARGET_NAME
 
-# TODO: Instantiate a client in main.py
-# TODO: Implement a mock numpy tuple
 class EXGClient:
     """A PyQt widget that visualizes an LSL stream in real time using pyqtgraph."""
 
